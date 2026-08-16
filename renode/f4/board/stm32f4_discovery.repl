@@ -1,0 +1,13 @@
+using "../cpu/stm32f4.repl"
+
+// UserLED: Miscellaneous.LED @ gpioPortD
+UserLED: Miscellaneous.LED @ sysbus
+
+gpioPortD:
+    12 -> UserLED@0
+
+TimerGPIO: Miscellaneous.LED @ sysbus
+
+gpioPortA:
+    0 -> TimerGPIO@0
+   

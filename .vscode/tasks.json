@@ -1,0 +1,183 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run Renode_GPIO_F1",
+            "type": "shell",
+            "command": "renode",
+            "args": [
+                "-e", "set bin_path @build/hydrv_gpio/example/HydrvGPIOExample.elf",
+                "-e", "set renode_core_path @third_party/renode",
+                "-e", "include @renode/f1/gpio_F1.resc"
+            ],
+            "isBackground": true,
+            "problemMatcher": {
+                "source": "Renode",
+                "pattern": {
+                    "regexp": ""
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "Renode, version .*",
+                    "endsPattern": ".*GDB server with all CPUs started on port.*"
+                }
+            },
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Run Renode_UART_F1",
+            "type": "shell",
+            "command": "renode",
+            "args": [
+                "-e", "set bin_path @build/hydrv_uart/example/HydrvUARTExample.elf",
+                "-e", "set renode_core_path @third_party/renode",
+                "-e", "include @renode/f1/uart_F1.resc"
+            ],
+            "isBackground": true,
+            "problemMatcher": {
+                "source": "Renode",
+                "pattern": {
+                    "regexp": ""
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "Renode, version .*",
+                    "endsPattern": ".*GDB server with all CPUs started on port.*"
+                }
+            },
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Run Renode_GPIO_F4",
+            "type": "shell",
+            "command": "renode",
+            "args": [
+                "-e", "set bin_path @build/hydrv_gpio/example/HydrvGPIOExample.elf",
+                "-e", "set renode_core_path @third_party/renode",
+                "-e", "include @renode/f4/gpio_F4.resc"
+            ],
+            "isBackground": true,
+            "problemMatcher": {
+                "source": "Renode",
+                "pattern": {
+                    "regexp": ""
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "Renode, version .*",
+                    "endsPattern": ".*GDB server with all CPUs started on port.*"
+                }
+            },
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Run Renode_UART_F4",
+            "type": "shell",
+            "command": "renode",
+            "args": [
+                "-e", "set bin_path @build/hydrv_uart/example/HydrvUARTExample.elf",
+                "-e", "set renode_core_path @third_party/renode",
+                "-e", "include @renode/f4/uart_F4.resc"
+            ],
+            "isBackground": true,
+            "problemMatcher": {
+                "source": "Renode",
+                "pattern": {
+                    "regexp": ""
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "Renode, version .*",
+                    "endsPattern": ".*GDB server with all CPUs started on port.*"
+                }
+            },
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Run Renode_BUS_F4",
+            "type": "shell",
+            "command": "renode",
+            "args": [
+                "-e", "set bin_path @build/hydrv_bus/example/HydrvBusExample.elf",
+                "-e", "set renode_core_path @third_party/renode",
+                "-e", "include @renode/f4/bus_F4.resc"
+            ],
+            "isBackground": true,
+            "problemMatcher": {
+                "source": "Renode",
+                "pattern": {
+                    "regexp": ""
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "Renode, version .*",
+                    "endsPattern": ".*GDB server with all CPUs started on port.*"
+                }
+            },
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Run Renode_TIM_F4",
+            "type": "shell",
+            "command": "renode",
+            "args": [
+                "--disable-gui",
+                "-e", "set bin_path @build/hydrv_tim/example/HydrvTIMERExample.elf",
+                "-e", "set renode_core_path @third_party/renode",
+                "-e", "include @renode/f4/gpio_F4.resc"
+            ],
+            "isBackground": true,
+            "problemMatcher": {
+                "source": "Renode",
+                "pattern": {
+                    "regexp": ""
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "Renode, version .*",
+                    "endsPattern": ".*GDB server with all CPUs started on port.*"
+                }
+            },
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Close Renode",
+            "command": "echo ${input:terminate}",
+            "type": "shell",
+            "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "terminate",
+            "type": "command",
+            "command": "workbench.action.tasks.terminate",
+            "args": "terminateAll"
+        }
+    ]
+    
+}

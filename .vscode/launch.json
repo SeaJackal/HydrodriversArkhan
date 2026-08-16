@@ -1,0 +1,276 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Cortex Debug f1",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/hydrv_uart/example/HydrvRSExample.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "runToEntryPoint": "main",
+            "servertype": "openocd",
+            "device": "stm32f1x",
+            "svdFile": "resources/STM32F103.svd",
+            "showDevDebugOutput": "raw",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32f1x.cfg"
+            ]
+        },
+        {
+            "name": "Cortex Debug f1 ICM42688",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/hydrv_icm42688/example/HydrvICM42688Example.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "runToEntryPoint": "main",
+            "servertype": "openocd",
+            "device": "stm32f1x",
+            "svdFile": "resources/STM32F103.svd",
+            "showDevDebugOutput": "raw",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32f1x.cfg"
+            ]
+        },
+        {
+            "name": "Cortex Debug f4 ICM42688",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/hydrv_icm42688/example/HydrvICM42688Example.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "runToEntryPoint": "main",
+            "servertype": "openocd",
+            "device": "stm32f4x",
+            "svdFile": "resources/STM32F407.svd",
+            "showDevDebugOutput": "raw",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32f4x.cfg"
+            ]
+        },
+        {
+            "name": "Cortex Debug f4 UART",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/hydrv_uart/example/HydrvUARTExample.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "runToEntryPoint": "main",
+            "servertype": "openocd",
+            "device": "stm32f4x",
+            "svdFile": "resources/STM32F407.svd",
+            "showDevDebugOutput": "raw",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32f4x.cfg"
+            ]
+        },
+        {
+            "name": "Cortex Debug f4 GPIO",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/hydrv_gpio/example/HydrvGPIOExample.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "runToEntryPoint": "main",
+            "servertype": "openocd",
+            "device": "stm32f4x",
+            "svdFile": "resources/STM32F407.svd",
+            "showDevDebugOutput": "raw",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32f4x.cfg"
+            ]
+        },
+        {
+            "name": "Cortex Debug f4 I2C",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/hydrv_i2c/example/HydrvI2CExample.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "runToEntryPoint": "main",
+            "servertype": "openocd",
+            "device": "stm32f4x",
+            "svdFile": "resources/STM32F407.svd",
+            "showDevDebugOutput": "raw",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32f4x.cfg"
+            ]
+        },
+        {
+            "name": "Cortex Debug f4 SPI",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/hydrv_spi/example/HydrvSPIExample.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "runToEntryPoint": "main",
+            "servertype": "openocd",
+            "device": "stm32f4x",
+            "svdFile": "resources/STM32F407.svd",
+            "showDevDebugOutput": "raw",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32f4x.cfg"
+            ]
+        },
+        {
+            "name": "Cortex Debug Timer",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/hydrv_tim/example/HydrvTIMERExample.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "runToEntryPoint": "main",
+            "servertype": "openocd",
+            "device": "stm32f4x",
+            "svdFile": "resources/STM32F407.svd",
+            "showDevDebugOutput": "raw",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32f4x.cfg"
+            ]
+        },
+        {
+            "name": "Cortex Debug Thruster",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/hydrv_thruster/example/HydrvThrusterExample.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "runToEntryPoint": "main",
+            "servertype": "openocd",
+            "device": "stm32f4x",
+            "svdFile": "resources/STM32F407.svd",
+            "showDevDebugOutput": "raw",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32f4x.cfg"
+            ]
+        },
+        {
+            "name": "Cortex Debug VectorNAV",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/hydrv_vectornav/example/HydrvVectorNAVExample.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "runToEntryPoint": "main",
+            "servertype": "openocd",
+            "device": "stm32f4x",
+            "svdFile": "resources/STM32F407.svd",
+            "showDevDebugOutput": "raw",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32f4x.cfg"
+            ]
+        },
+        {
+            "name": "Cortex Debug Shell",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/hydrv_shell/example/HydrvShellExample.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "runToEntryPoint": "main",
+            "servertype": "openocd",
+            "device": "stm32f4x",
+            "svdFile": "resources/STM32F407.svd",
+            "showDevDebugOutput": "raw",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32f4x.cfg"
+            ]
+        },
+        {
+            "name": "Cortex Debug f4 Bus",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/hydrv_bus/example/HydrvBusExample.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "runToEntryPoint": "main",
+            "servertype": "openocd",
+            "device": "stm32f4x",
+            "svdFile": "resources/STM32F407.svd",
+            "showDevDebugOutput": "raw",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32f4x.cfg"
+            ]
+        },
+        {
+            "name": "Renode debug GPIO_F1",
+            "type": "cppdbg",
+            "request": "launch",
+            // "preLaunchTask": "Run Renode_GPIO_F1",
+            "postDebugTask": "Close Renode",
+            "miDebuggerServerAddress": "localhost:3333",
+            "cwd": "${workspaceRoot}",
+            "miDebuggerPath": "gdb-multiarch",
+            "program": "build/hydrv_gpio/example/HydrvGPIOExample.elf"
+        },
+        {
+            "name": "Renode debug UART_F1",
+            "type": "cppdbg",
+            "request": "launch",
+            // "preLaunchTask": "Run Renode_UART_F1",
+            "postDebugTask": "Close Renode",
+            "miDebuggerServerAddress": "localhost:3333",
+            "cwd": "${workspaceRoot}",
+            "miDebuggerPath": "gdb-multiarch",
+            "program": "build/hydrv_uart/example/HydrvUARTExample.elf"
+        },
+        {
+            "name": "Renode debug GPIO_F4",
+            "type": "cppdbg",
+            "request": "launch",
+            // "preLaunchTask": "Run Renode_GPIO_F4",
+            "postDebugTask": "Close Renode",
+            "miDebuggerServerAddress": "localhost:3333",
+            "cwd": "${workspaceRoot}",
+            "miDebuggerPath": "gdb-multiarch",
+            "program": "build/hydrv_gpio/example/HydrvGPIOExample.elf"
+        },
+        {
+            "name": "Renode debug UART_F4",
+            "type": "cppdbg",
+            "request": "launch",
+            // "preLaunchTask": "Run Renode_UART_F4",
+            "postDebugTask": "Close Renode",
+            "miDebuggerServerAddress": "localhost:3333",
+            "cwd": "${workspaceRoot}",
+            "miDebuggerPath": "gdb-multiarch",
+            "program": "build/hydrv_uart/example/HydrvUARTExample.elf"
+        },
+        {
+            "name": "Renode debug BUS_F4",
+            "type": "cppdbg",
+            "request": "launch",
+            // "preLaunchTask": "Run Renode_UART_F4",
+            "postDebugTask": "Close Renode",
+            "miDebuggerServerAddress": "localhost:3333",
+            "cwd": "${workspaceRoot}",
+            "miDebuggerPath": "gdb-multiarch",
+            "program": "build/hydrv_bus/example/HydrvBusExample.elf"
+        },
+        {
+            "name": "Renode debug I2C_F4",
+            "type": "cppdbg",
+            "request": "launch",
+            "postDebugTask": "Close Renode",
+            "miDebuggerServerAddress": "localhost:3333",
+            "cwd": "${workspaceRoot}",
+            "miDebuggerPath": "gdb-multiarch",
+            "program": "build/hydrv_i2c/example/HydrvI2CExample.elf"
+        },
+        {
+            "name": "Renode debug TIM_F4",
+            "type": "cppdbg",
+            "request": "launch",
+            // "preLaunchTask": "Run Renode_UART_F4",
+            "postDebugTask": "Close Renode",
+            "miDebuggerServerAddress": "localhost:3333",
+            "cwd": "${workspaceRoot}",
+            "miDebuggerPath": "gdb-multiarch",
+            "program": "build/hydrv_tim/example/HydrvTIMERExample.elf"
+        },
+    ]
+}

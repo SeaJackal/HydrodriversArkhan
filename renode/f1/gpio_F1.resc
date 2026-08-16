@@ -1,0 +1,20 @@
+$name="GPIO_F1"
+
+echo $bin_path
+
+mach create $name
+machine LoadPlatformDescription $ORIGIN/board/stm32f1_board.repl
+
+machine StartGdbServer 3333
+
+cpu PerformanceInMips 200
+emulation SetGlobalQuantum "0.000001"
+
+macro reset
+"""
+    sysbus LoadELF $bin_path
+    sysbus.cpu VectorTableOffset 0x08000000
+
+"""
+
+runMacro $reset

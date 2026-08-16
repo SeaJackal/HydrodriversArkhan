@@ -1,0 +1,23 @@
+$name="UART_F4"
+
+echo $bin_path
+
+mach create $name
+machine LoadPlatformDescription $ORIGIN/board/stm32f4_discovery.repl
+
+
+machine StartGdbServer 3333
+
+cpu PerformanceInMips 200
+emulation SetGlobalQuantum "0.000001"
+emulation CreateUartPtyTerminal "term" "/tmp/uart" true
+connector Connect sysbus.usart3 term
+
+macro reset
+"""
+    sysbus LoadELF $bin_path
+    sysbus.cpu VectorTableOffset 0x08000000
+    
+"""
+
+runMacro $reset
