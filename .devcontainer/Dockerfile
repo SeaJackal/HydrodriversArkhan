@@ -37,7 +37,7 @@ RUN wget https://builds.renode.io/renode-1.16.1+20260727gita485ae40b.linux-porta
     && mkdir /home/${USERNAME}/renode \
     && tar -xf renode-1.16.1+20260727gita485ae40b.linux-portable.tar.gz -C /home/${USERNAME}/renode --strip-components=1 \
     && chown -R ${USERNAME} /home/${USERNAME}/renode \
-    && ln -s /home/${USERNAME}/renode /usr/local/bin/renode \
+    && ln -s /home/${USERNAME}/renode/renode /usr/local/bin/renode \
     && rm renode-1.16.1+20260727gita485ae40b.linux-portable.tar.gz
 
 ENV PYRENODE_PATH=/home/${USERNAME}/renode

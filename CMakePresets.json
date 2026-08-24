@@ -53,6 +53,16 @@
             }
         },
         {
+            "name": "ReleaseF4",
+            "inherits": [
+                "F4"
+            ],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "HYDRV_BUILD_EXAMPLES": "ON"
+            }
+        },
+        {
             "name": "DebugF4",
             "inherits": [
                 "F4",

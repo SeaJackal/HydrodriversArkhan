@@ -1,23 +1,29 @@
 #include "hydrv_clock.hpp"
-#include "hydrv_gpio_low.hpp"
+#include "hydrv_gpio.hpp"
+#include "hydrv_gpio_mapper.hpp"
 
 #include <chrono>
 
 #if defined(STM32F407xx)
-constinit hydrv::GPIO::GPIOLow led_pin(hydrv::GPIO::GPIOLow::GPIOD_port, 12,
-                                       hydrv::GPIO::GPIOLow::GPIO_Output);
+
+constinit hydrv::gpio::GPIOMapper gpio_mapper{
+    {.port = hydrv::gpio::GPIOPort::Index::kGPIOD,
+     .pin = 12,
+     .preset = hydrv::gpio::GPIOPort::kOutput}};
+
+constinit hydrv::gpio::GPIO led_pin_base(hydrv::gpio::GPIOPort::Index::kGPIOD, 12, 0, gpio_mapper);
 #elif defined(STM32F103xB)
 constinit hydrv::GPIO::GPIOLow led_pin(hydrv::GPIO::GPIOLow::GPIOC_port, 13,
                                        hydrv::GPIO::GPIOLow::GPIO_Output);
 #endif
+
+hydrv::gpio::GPIO::GPIOHandler led_pin(led_pin_base);
 
 int main(void)
 {
     NVIC_SetPriorityGrouping(0);
 
     hydrv::clock::Clock::Init(hydrv::clock::Clock::HSI_DEFAULT);
-
-    led_pin.Init();
 
     while (1)
     {

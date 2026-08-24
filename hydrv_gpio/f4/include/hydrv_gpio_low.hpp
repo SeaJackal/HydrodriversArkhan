@@ -1,271 +1,100 @@
 #pragma once
 
-#include <cstddef>
 #include <cstdint>
+#include <stm32f4xx.h>
 
-#include "hydrolib_return_codes.hpp"
+#include "hydrv_gpio_port.hpp"
 
-extern "C"
+namespace hydrv::gpio
 {
-#include "stm32f4xx.h"
-}
-
-namespace hydrv::GPIO
-{
-class GPIOLow
+class GPIOPort::GPIOLow
 {
 public:
-    enum GPIOFunc
-    {
-        OUTPUT = 0,
-        FAST_OUTPUT,
-        UART,
-        TIMER,
-        I2C,
-        SPI
-    };
-    struct GPIOPort
-    {
-    public:
-        static constexpr std::size_t PIN_COUNT = 16;
+    class GPIOLowHandler;
 
-    public:
-        const uint32_t GPIOx_;
-        const uint32_t RCC_AHB1ENR_GPIOxEN_;
-
-        bool *const inited_pins_;
-    };
-
-    struct GPIOPreset
-    {
-        const GPIOFunc pin_function;
-    };
+    consteval GPIOLow(GPIOPort &GPIO_port, int pin, int altfunc = 0);
 
 private:
-    static constinit bool GPIOA_inited_pins_[GPIOPort::PIN_COUNT];
-    static constinit bool GPIOB_inited_pins_[GPIOPort::PIN_COUNT];
-    static constinit bool GPIOC_inited_pins_[GPIOPort::PIN_COUNT];
-    static constinit bool GPIOD_inited_pins_[GPIOPort::PIN_COUNT];
+    GPIOPort &GPIO_port_;
 
-public:
-    static constexpr GPIOPort GPIOA_port{GPIOA_BASE, RCC_AHB1ENR_GPIOAEN,
-                                         GPIOA_inited_pins_};
-    static constexpr GPIOPort GPIOB_port{GPIOB_BASE, RCC_AHB1ENR_GPIOBEN,
-                                         GPIOB_inited_pins_};
-    static constexpr GPIOPort GPIOC_port{GPIOC_BASE, RCC_AHB1ENR_GPIOCEN,
-                                         GPIOC_inited_pins_};
-    static constexpr GPIOPort GPIOD_port{GPIOD_BASE, RCC_AHB1ENR_GPIODEN,
-                                         GPIOD_inited_pins_};
-    static constexpr GPIOPreset GPIO_Output{OUTPUT};
-    static constexpr GPIOPreset GPIO_UART_TX{UART};
-    static constexpr GPIOPreset GPIO_UART_RX{UART};
-    static constexpr GPIOPreset GPIO_Timer{TIMER};
-    static constexpr GPIOPreset GPIO_I2C_SCL{I2C};
-    static constexpr GPIOPreset GPIO_I2C_SDA{I2C};
-    static constexpr GPIOPreset GPIO_SPI_INPUT{SPI};
-    static constexpr GPIOPreset GPIO_SPI_OUTPUT{SPI};
-    static constexpr GPIOPreset GPIO_Fast_Output{FAST_OUTPUT};
+    const int altfunc_reg_index_;
 
-public:
-    consteval GPIOLow(const GPIOPort &GPIO_group, unsigned pin,
-                      GPIOPreset preset);
-
-public:
-    hydrolib::ReturnCode Init(uint32_t altfunc);
-
-    bool IsInited();
-
-    void Set();
-
-    void Reset();
-
-private:
-    bool &is_inited_;
-    const uint32_t GPIOx_;
-    const unsigned pin_;
-    const GPIOFunc pin_func_;
-    const uint32_t RCC_AHB1ENR_GPIOxEN_;
-
-    const uint32_t output_speed_reg_mask_;
-    const uint32_t output_speed_reg_value_low_;
-    const uint32_t output_speed_reg_value_very_high_;
-
-    const uint32_t output_type_reg_mask_;
-
-    const uint32_t push_pull_reg_mask_;
-    const uint32_t push_pull_reg_value_no_;
-    const uint32_t push_pull_reg_value_pull_up_;
-
-    const uint32_t mode_reg_mask_;
-    const uint32_t mode_reg_value_output_;
-    const uint32_t mode_reg_value_altfunc_;
-
-    const uint32_t altfunc_reg_low_mask_;
-    const uint32_t altfunc_reg_high_mask_;
+    const uint32_t altfunc_reg_mask_;
+    const uint32_t altfunc_reg_value_;
 
     const uint32_t set_reg_mask_;
     const uint32_t reset_reg_mask_;
 
 private:
-    static void EnableGPIOxClock_(const uint32_t RCC_AHB1ENR_GPIOxEN);
-
-    void SetPinConfig_(uint32_t speed, bool is_open_drain, uint32_t push_pull);
-
-    void SetModeOutput_();
-
-    void SetModeAltfunc_(uint32_t altfunc);
-
-    uint32_t GetAltfuncRegLowValue_(uint32_t func);
-
-    uint32_t GetAltfuncRegHighValue_(uint32_t func);
+    static consteval uint32_t CalculateAltfuncRegMask(int pin);
+    static consteval uint32_t CalculateAltfuncRegValue(int pin, int altfunc);
+    static consteval uint32_t CalculateSetRegValue(int pin);
+    static consteval uint32_t CalculateResetRegValue(int pin);
 };
 
-constinit inline bool GPIOLow::GPIOA_inited_pins_[GPIOPort::PIN_COUNT] = {};
-constinit inline bool GPIOLow::GPIOB_inited_pins_[GPIOPort::PIN_COUNT] = {};
-constinit inline bool GPIOLow::GPIOC_inited_pins_[GPIOPort::PIN_COUNT] = {};
-constinit inline bool GPIOLow::GPIOD_inited_pins_[GPIOPort::PIN_COUNT] = {};
+class GPIOPort::GPIOLow::GPIOLowHandler
+{
+public:
+    GPIOLowHandler(GPIOLow &GPIO_low);
 
-consteval inline GPIOLow::GPIOLow(const GPIOPort &GPIO_group, unsigned pin,
-                                  GPIOPreset preset)
-    : is_inited_(GPIO_group.inited_pins_[pin]),
-      GPIOx_(GPIO_group.GPIOx_),
-      pin_(pin),
-      pin_func_(preset.pin_function),
-      RCC_AHB1ENR_GPIOxEN_(GPIO_group.RCC_AHB1ENR_GPIOxEN_),
-      output_speed_reg_mask_(0x3UL << (2 * pin)),
-      output_speed_reg_value_low_(0x0UL),
-      output_speed_reg_value_very_high_(0x3UL << (2 * pin)),
-      output_type_reg_mask_(0x1UL << pin),
-      push_pull_reg_mask_(0x3UL << (2 * pin)),
-      push_pull_reg_value_no_(0x0UL),
-      push_pull_reg_value_pull_up_(0x1UL << (2 * pin)),
-      mode_reg_mask_(0x3UL << (2 * pin)),
-      mode_reg_value_output_(0x1UL << (2 * pin)),
-      mode_reg_value_altfunc_(0x2UL << (2 * pin)),
-      altfunc_reg_low_mask_(pin < 8 ? 0xFUL << (4 * pin) : 0x0UL),
-      altfunc_reg_high_mask_(pin < 8 ? 0x0UL : 0xFUL << (4 * (pin - 8))),
-      set_reg_mask_(0x1UL << pin),
-      reset_reg_mask_(0x1UL << (pin + GPIO_BSRR_BR0_Pos))
+    void Set();
+    void Reset();
+
+private:
+    GPIOLow &GPIO_low_;
+};
+
+inline GPIOPort::GPIOLow::GPIOLowHandler::GPIOLowHandler(GPIOLow &GPIO_low)
+    : GPIO_low_(GPIO_low)
+{
+    GPIO_low_.GPIO_port_.Init();
+    auto GPIOx = reinterpret_cast<GPIO_TypeDef *>(GPIO_low_.GPIO_port_.GPIOx_);
+    MODIFY_REG(GPIOx->AFR[GPIO_low_.altfunc_reg_index_],
+               GPIO_low_.altfunc_reg_mask_, GPIO_low_.altfunc_reg_value_);
+}
+
+inline void GPIOPort::GPIOLow::GPIOLowHandler::Set()
+{
+    auto GPIOx = reinterpret_cast<GPIO_TypeDef *>(GPIO_low_.GPIO_port_.GPIOx_);
+    GPIOx->BSRR = GPIO_low_.set_reg_mask_;
+}
+
+inline void GPIOPort::GPIOLow::GPIOLowHandler::Reset()
+{
+    auto GPIOx = reinterpret_cast<GPIO_TypeDef *>(GPIO_low_.GPIO_port_.GPIOx_);
+    GPIOx->BSRR = GPIO_low_.reset_reg_mask_;
+}
+
+consteval inline GPIOPort::GPIOLow::GPIOLow(GPIOPort &GPIO_port, int pin,
+                                            int altfunc)
+    : GPIO_port_(GPIO_port),
+      altfunc_reg_index_(pin < 8 ? 0 : 1),
+      altfunc_reg_mask_(CalculateAltfuncRegMask(pin)),
+      altfunc_reg_value_(CalculateAltfuncRegValue(pin, altfunc)),
+      set_reg_mask_(CalculateSetRegValue(pin)),
+      reset_reg_mask_(CalculateResetRegValue(pin))
 {
 }
 
-inline hydrolib::ReturnCode GPIOLow::Init(uint32_t altfunc = 0)
+consteval inline uint32_t GPIOPort::GPIOLow::CalculateAltfuncRegMask(int pin)
 {
-    if (is_inited_)
-    {
-        return hydrolib::ReturnCode::FAIL;
-    }
-
-    EnableGPIOxClock_(RCC_AHB1ENR_GPIOxEN_);
-
-    switch (pin_func_)
-    {
-    case SPI:
-        SetPinConfig_(output_speed_reg_value_very_high_, false,
-                     push_pull_reg_value_no_);
-        SetModeAltfunc_(altfunc);
-    case UART:
-        SetPinConfig_(output_speed_reg_value_very_high_, false,
-                      push_pull_reg_value_no_);
-        SetModeAltfunc_(altfunc);
-        break;
-    case TIMER:
-        SetPinConfig_(output_speed_reg_value_low_, false,
-                      push_pull_reg_value_no_);
-        SetModeAltfunc_(altfunc);
-        break;
-    case OUTPUT:
-        SetPinConfig_(output_speed_reg_value_low_, false,
-                      push_pull_reg_value_no_);
-        SetModeOutput_();
-        break;
-    case FAST_OUTPUT:
-        SetPinConfig_(output_speed_reg_value_very_high_, false,
-                      push_pull_reg_value_no_);
-        SetModeOutput_();
-        break;
-    case I2C:
-        SetPinConfig_(output_speed_reg_value_very_high_, true,
-                      push_pull_reg_value_pull_up_);
-        SetModeAltfunc_(altfunc);
-        break;
-    default:
-        return hydrolib::ReturnCode::FAIL;
-    }
-    // TODO move to constructor output_speed_reg_value_low_, false,
-    // push_pull_reg_value_no_
-    is_inited_ = true;
-
-    return hydrolib::ReturnCode::OK;
+    return 0xFUL << (4 * (pin % 8));
 }
 
-inline bool GPIOLow::IsInited() { return is_inited_; }
-
-inline void GPIOLow::Set()
+consteval inline uint32_t
+GPIOPort::GPIOLow::CalculateAltfuncRegValue(int pin, int altfunc)
 {
-    CLEAR_BIT(reinterpret_cast<GPIO_TypeDef*>(GPIOx_)->BSRR, reset_reg_mask_);
-    SET_BIT(reinterpret_cast<GPIO_TypeDef*>(GPIOx_)->BSRR, set_reg_mask_);
+    return altfunc << (4 * (pin % 8));
 }
 
-inline void GPIOLow::Reset()
+consteval inline uint32_t GPIOPort::GPIOLow::CalculateSetRegValue(int pin)
 {
-    CLEAR_BIT(reinterpret_cast<GPIO_TypeDef*>(GPIOx_)->BSRR, set_reg_mask_);
-    SET_BIT(reinterpret_cast<GPIO_TypeDef*>(GPIOx_)->BSRR, reset_reg_mask_);
+    return 0x1UL << pin;
 }
 
-inline void GPIOLow::EnableGPIOxClock_(const uint32_t RCC_AHB1ENR_GPIOxEN)
+consteval inline uint32_t GPIOPort::GPIOLow::CalculateResetRegValue(int pin)
 {
-    __IO uint32_t tmpreg = 0x00U;
-    SET_BIT(RCC->AHB1ENR, RCC_AHB1ENR_GPIOxEN); /* Delay after an RCC peripheral
-                                                   clock enabling */
-    tmpreg = READ_BIT(RCC->AHB1ENR, RCC_AHB1ENR_GPIOxEN);
-    (void)tmpreg;
+    return 0x1UL << (pin + GPIO_BSRR_BR0_Pos);
 }
 
-inline void GPIOLow::SetPinConfig_(uint32_t speed, bool is_open_drain,
-                                   uint32_t push_pull)
-{
-    MODIFY_REG(reinterpret_cast<GPIO_TypeDef*>(GPIOx_)->OSPEEDR, output_speed_reg_mask_, speed);
-    if (is_open_drain)
-    {
-        SET_BIT(reinterpret_cast<GPIO_TypeDef*>(GPIOx_)->OTYPER, output_type_reg_mask_);
-    }
-    else
-    {
-        CLEAR_BIT(reinterpret_cast<GPIO_TypeDef*>(GPIOx_)->OTYPER, output_type_reg_mask_);
-    }
-    MODIFY_REG(reinterpret_cast<GPIO_TypeDef*>(GPIOx_)->PUPDR, push_pull_reg_mask_, push_pull);
-}
-
-inline void GPIOLow::SetModeOutput_()
-{
-    MODIFY_REG(reinterpret_cast<GPIO_TypeDef*>(GPIOx_)->MODER, mode_reg_mask_, mode_reg_value_output_);
-}
-
-inline void GPIOLow::SetModeAltfunc_(uint32_t altfunc)
-{
-    if (pin_ > 7)
-    {
-        MODIFY_REG(reinterpret_cast<GPIO_TypeDef*>(GPIOx_)->AFR[1], altfunc_reg_high_mask_,
-                   GetAltfuncRegHighValue_(altfunc));
-    }
-    else
-    {
-        MODIFY_REG(reinterpret_cast<GPIO_TypeDef*>(GPIOx_)->AFR[0], altfunc_reg_low_mask_,
-                   GetAltfuncRegLowValue_(altfunc));
-    }
-
-    MODIFY_REG(reinterpret_cast<GPIO_TypeDef*>(GPIOx_)->MODER, mode_reg_mask_, mode_reg_value_altfunc_);
-}
-
-inline uint32_t GPIOLow::GetAltfuncRegLowValue_(uint32_t func)
-{
-    return func << (4 * pin_);
-}
-
-inline uint32_t GPIOLow::GetAltfuncRegHighValue_(uint32_t func)
-{
-    return func << (4 * (pin_ - 8));
-}
-
-} // namespace hydrv::GPIO
+} // namespace hydrv::gpio

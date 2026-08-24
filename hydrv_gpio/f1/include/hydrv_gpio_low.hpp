@@ -10,11 +10,19 @@ extern "C"
 #include "stm32f1xx.h"
 }
 
-namespace hydrv::GPIO
+namespace hydrv::gpio
 {
+struct GPIOPort
+{
+public:
+    static constexpr std::size_t PIN_COUNT = 16;
+
+    uint32_t GPIOx;
+    uint32_t RCC_APB2ENR_IOPxEN;
+};
+
 class GPIOLow
 {
-
 private:
     enum class Mode : uint32_t
     {
@@ -36,39 +44,17 @@ private:
     };
 
 public:
-    struct GPIOPort
-    {
-    public:
-        static constexpr std::size_t PIN_COUNT = 16;
-
-    public:
-        const uint32_t GPIOx;
-        const uint32_t RCC_APB2ENR_IOPxEN;
-
-        bool *const inited_pins_;
-    };
-
     struct GPIOPreset
     {
-        Mode MODE;
-        Configure CNF;
+        Mode mode;
+        Configure configure;
     };
 
-private:
-    static constinit bool GPIOA_inited_pins_[GPIOPort::PIN_COUNT];
-    static constinit bool GPIOB_inited_pins_[GPIOPort::PIN_COUNT];
-    static constinit bool GPIOC_inited_pins_[GPIOPort::PIN_COUNT];
-    static constinit bool GPIOD_inited_pins_[GPIOPort::PIN_COUNT];
+    static constexpr GPIOPort GPIOA_port{GPIOA_BASE, RCC_APB2ENR_IOPAEN};
+    static constexpr GPIOPort GPIOB_port{GPIOB_BASE, RCC_APB2ENR_IOPBEN};
+    static constexpr GPIOPort GPIOC_port{GPIOC_BASE, RCC_APB2ENR_IOPCEN};
+    static constexpr GPIOPort GPIOD_port{GPIOD_BASE, RCC_APB2ENR_IOPDEN};
 
-public:
-    static constexpr GPIOPort GPIOA_port{GPIOA_BASE, RCC_APB2ENR_IOPAEN,
-                                         GPIOA_inited_pins_};
-    static constexpr GPIOPort GPIOB_port{GPIOB_BASE, RCC_APB2ENR_IOPBEN,
-                                         GPIOB_inited_pins_};
-    static constexpr GPIOPort GPIOC_port{GPIOC_BASE, RCC_APB2ENR_IOPCEN,
-                                         GPIOC_inited_pins_};
-    static constexpr GPIOPort GPIOD_port{GPIOD_BASE, RCC_APB2ENR_IOPDEN,
-                                         GPIOD_inited_pins_};
     static constexpr GPIOPreset GPIO_Output{
         Mode::kOutput2MHz, Configure::kGeneralPurposePushPullOutput};
     static constexpr GPIOPreset GPIO_Fast_Output{
@@ -82,20 +68,15 @@ public:
     static constexpr GPIOPreset GPIO_SPI_OUTPUT{
         Mode::kOutput50MHz, Configure::kAlternateFunctionPushPullOutput};
 
-public:
     consteval GPIOLow(const GPIOPort &GPIO_group, unsigned pin,
                       GPIOPreset preset);
 
-public:
-    hydrolib::ReturnCode Init(uint32_t altfunc);
-
-    bool IsInited();
-
     void Set();
-
     void Reset();
 
 private:
+    static void EnableGPIOxClock_(const uint32_t RCC_AHB1ENR_GPIOxEN);
+
     bool &is_inited_;
     const uint32_t GPIOx_;
     const unsigned pin_;
@@ -106,15 +87,7 @@ private:
 
     const uint32_t set_reg_mask_;
     const uint32_t reset_reg_mask_;
-
-private:
-    static void EnableGPIOxClock_(const uint32_t RCC_AHB1ENR_GPIOxEN);
 };
-
-inline bool GPIOLow::GPIOA_inited_pins_[GPIOPort::PIN_COUNT] = {};
-inline bool GPIOLow::GPIOB_inited_pins_[GPIOPort::PIN_COUNT] = {};
-inline bool GPIOLow::GPIOC_inited_pins_[GPIOPort::PIN_COUNT] = {};
-inline bool GPIOLow::GPIOD_inited_pins_[GPIOPort::PIN_COUNT] = {};
 
 consteval inline GPIOLow::GPIOLow(const GPIOPort &GPIO_group, unsigned pin,
                                   GPIOPreset preset)
@@ -123,8 +96,9 @@ consteval inline GPIOLow::GPIOLow(const GPIOPort &GPIO_group, unsigned pin,
       pin_(pin),
       RCC_APB2ENR_IOPxEN_(GPIO_group.RCC_APB2ENR_IOPxEN),
       cr_reg_mask_(0xFUL << (4 * (pin % 8))),
-      cr_reg_value_(static_cast<uint32_t>(preset.MODE) << (4 * (pin % 8)) |
-                    static_cast<uint32_t>(preset.CNF) << (4 * (pin % 8) + 2)),
+      cr_reg_value_(static_cast<uint32_t>(preset.mode) << (4 * (pin % 8)) |
+                    static_cast<uint32_t>(preset.configure)
+                        << (4 * (pin % 8) + 2)),
       set_reg_mask_(0x1UL << pin),
       reset_reg_mask_(0x1UL << (pin + GPIO_BSRR_BR0_Pos))
 {
@@ -132,10 +106,6 @@ consteval inline GPIOLow::GPIOLow(const GPIOPort &GPIO_group, unsigned pin,
 
 inline hydrolib::ReturnCode GPIOLow::Init([[maybe_unused]] uint32_t altfunc = 0)
 {
-    if (is_inited_)
-    {
-        return hydrolib::ReturnCode::FAIL;
-    }
 
     EnableGPIOxClock_(RCC_APB2ENR_IOPxEN_);
 
@@ -175,4 +145,4 @@ inline void GPIOLow::EnableGPIOxClock_(const uint32_t RCC_AHB1ENR_GPIOxEN)
     (void)tmpreg;
 }
 
-} // namespace hydrv::GPIO
+} // namespace hydrv::gpio
