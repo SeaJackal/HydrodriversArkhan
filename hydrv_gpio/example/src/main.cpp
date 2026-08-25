@@ -11,10 +11,19 @@ constinit hydrv::gpio::GPIOMapper gpio_mapper{
      .pin = 12,
      .preset = hydrv::gpio::GPIOPort::kOutput}};
 
-constinit hydrv::gpio::GPIO led_pin_base(hydrv::gpio::GPIOPort::Index::kGPIOD, 12, 0, gpio_mapper);
+constinit hydrv::gpio::GPIO led_pin_base(hydrv::gpio::GPIOPort::Index::kGPIOD,
+                                         12, 0, gpio_mapper);
+
 #elif defined(STM32F103xB)
-constinit hydrv::GPIO::GPIOLow led_pin(hydrv::GPIO::GPIOLow::GPIOC_port, 13,
-                                       hydrv::GPIO::GPIOLow::GPIO_Output);
+
+constinit hydrv::gpio::GPIOMapper gpio_mapper{
+    {.port = hydrv::gpio::GPIOPort::Index::kGPIOC,
+     .pin = 13,
+     .preset = hydrv::gpio::GPIOPort::kOutput}};
+
+constinit hydrv::gpio::GPIO led_pin_base(hydrv::gpio::GPIOPort::Index::kGPIOC,
+                                         13, 0, gpio_mapper);
+
 #endif
 
 hydrv::gpio::GPIO::GPIOHandler led_pin(led_pin_base);

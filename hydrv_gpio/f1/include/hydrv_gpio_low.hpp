@@ -1,148 +1,75 @@
 #pragma once
 
-#include <cstddef>
 #include <cstdint>
 
-#include "hydrolib_return_codes.hpp"
-
-extern "C"
-{
-#include "stm32f1xx.h"
-}
+#include "hydrv_gpio_port.hpp"
 
 namespace hydrv::gpio
 {
-struct GPIOPort
+class GPIOPort::GPIOLow
 {
 public:
-    static constexpr std::size_t PIN_COUNT = 16;
+    class GPIOLowHandler;
 
-    uint32_t GPIOx;
-    uint32_t RCC_APB2ENR_IOPxEN;
+    consteval GPIOLow(GPIOPort &GPIO_port, int pin, int altfunc);
+
+private:
+    GPIOPort &GPIO_port_;
+
+    const uint32_t set_reg_mask_;
+    const uint32_t reset_reg_mask_;
+
+private:
+    static consteval uint32_t CalculateSetRegValue(int pin);
+    static consteval uint32_t CalculateResetRegValue(int pin);
 };
 
-class GPIOLow
+class GPIOPort::GPIOLow::GPIOLowHandler
 {
-private:
-    enum class Mode : uint32_t
-    {
-        kInput = 0x00,
-        kOutput10MHz = 0x01,
-        kOutput2MHz = 0x02,
-        kOutput50MHz = 0x03
-    };
-
-    enum class Configure : uint32_t // TODO: Make check Input-Output from mode
-    {
-        kAnalogInput = 0x00,
-        kFloatingInput = 0x01,
-        kPullUpDownInput = 0x02,
-        kGeneralPurposePushPullOutput = 0x00,
-        kGeneralPurposeOpenDrainOutput = 0x01,
-        kAlternateFunctionPushPullOutput = 0x02,
-        kAlternateFunctionOpenDrainOutput = 0x03
-    };
-
 public:
-    struct GPIOPreset
-    {
-        Mode mode;
-        Configure configure;
-    };
-
-    static constexpr GPIOPort GPIOA_port{GPIOA_BASE, RCC_APB2ENR_IOPAEN};
-    static constexpr GPIOPort GPIOB_port{GPIOB_BASE, RCC_APB2ENR_IOPBEN};
-    static constexpr GPIOPort GPIOC_port{GPIOC_BASE, RCC_APB2ENR_IOPCEN};
-    static constexpr GPIOPort GPIOD_port{GPIOD_BASE, RCC_APB2ENR_IOPDEN};
-
-    static constexpr GPIOPreset GPIO_Output{
-        Mode::kOutput2MHz, Configure::kGeneralPurposePushPullOutput};
-    static constexpr GPIOPreset GPIO_Fast_Output{
-        Mode::kOutput50MHz, Configure::kGeneralPurposePushPullOutput};
-    static constexpr GPIOPreset GPIO_UART_TX{
-        Mode::kOutput10MHz, Configure::kAlternateFunctionPushPullOutput};
-    static constexpr GPIOPreset GPIO_UART_RX{Mode::kInput,
-                                             Configure::kFloatingInput};
-    static constexpr GPIOPreset GPIO_SPI_INPUT{Mode::kInput,
-                                               Configure::kFloatingInput};
-    static constexpr GPIOPreset GPIO_SPI_OUTPUT{
-        Mode::kOutput50MHz, Configure::kAlternateFunctionPushPullOutput};
-
-    consteval GPIOLow(const GPIOPort &GPIO_group, unsigned pin,
-                      GPIOPreset preset);
+    GPIOLowHandler(GPIOLow &GPIO_low);
 
     void Set();
     void Reset();
 
 private:
-    static void EnableGPIOxClock_(const uint32_t RCC_AHB1ENR_GPIOxEN);
-
-    bool &is_inited_;
-    const uint32_t GPIOx_;
-    const unsigned pin_;
-    const uint32_t RCC_APB2ENR_IOPxEN_;
-
-    const uint32_t cr_reg_mask_;
-    const uint32_t cr_reg_value_;
-
-    const uint32_t set_reg_mask_;
-    const uint32_t reset_reg_mask_;
+    GPIOLow &GPIO_low_;
 };
 
-consteval inline GPIOLow::GPIOLow(const GPIOPort &GPIO_group, unsigned pin,
-                                  GPIOPreset preset)
-    : is_inited_(GPIO_group.inited_pins_[pin]),
-      GPIOx_(GPIO_group.GPIOx),
-      pin_(pin),
-      RCC_APB2ENR_IOPxEN_(GPIO_group.RCC_APB2ENR_IOPxEN),
-      cr_reg_mask_(0xFUL << (4 * (pin % 8))),
-      cr_reg_value_(static_cast<uint32_t>(preset.mode) << (4 * (pin % 8)) |
-                    static_cast<uint32_t>(preset.configure)
-                        << (4 * (pin % 8) + 2)),
-      set_reg_mask_(0x1UL << pin),
-      reset_reg_mask_(0x1UL << (pin + GPIO_BSRR_BR0_Pos))
+inline GPIOPort::GPIOLow::GPIOLowHandler::GPIOLowHandler(GPIOLow &GPIO_low)
+    : GPIO_low_(GPIO_low)
+{
+    GPIO_low_.GPIO_port_.Init();
+}
+
+inline void GPIOPort::GPIOLow::GPIOLowHandler::Set()
+{
+    auto GPIOx = reinterpret_cast<GPIO_TypeDef *>(GPIO_low_.GPIO_port_.GPIOx_);
+    GPIOx->BSRR = GPIO_low_.set_reg_mask_;
+}
+
+inline void GPIOPort::GPIOLow::GPIOLowHandler::Reset()
+{
+    auto GPIOx = reinterpret_cast<GPIO_TypeDef *>(GPIO_low_.GPIO_port_.GPIOx_);
+    GPIOx->BSRR = GPIO_low_.reset_reg_mask_;
+}
+
+consteval inline GPIOPort::GPIOLow::GPIOLow(GPIOPort &GPIO_port, int pin,
+                                            [[maybe_unused]] int altfunc)
+    : GPIO_port_(GPIO_port),
+      set_reg_mask_(CalculateSetRegValue(pin)),
+      reset_reg_mask_(CalculateResetRegValue(pin))
 {
 }
 
-inline hydrolib::ReturnCode GPIOLow::Init([[maybe_unused]] uint32_t altfunc = 0)
+consteval inline uint32_t GPIOPort::GPIOLow::CalculateSetRegValue(int pin)
 {
-
-    EnableGPIOxClock_(RCC_APB2ENR_IOPxEN_);
-
-    if (pin_ > 7)
-    {
-        MODIFY_REG(reinterpret_cast<GPIO_TypeDef *>(GPIOx_)->CRH, cr_reg_mask_,
-                   cr_reg_value_);
-    }
-    else
-    {
-        MODIFY_REG(reinterpret_cast<GPIO_TypeDef *>(GPIOx_)->CRL, cr_reg_mask_,
-                   cr_reg_value_);
-    }
-    is_inited_ = true;
-
-    return hydrolib::ReturnCode::OK;
+    return 0x1UL << pin;
 }
 
-inline bool GPIOLow::IsInited() { return is_inited_; }
-
-inline void GPIOLow::Set()
+consteval inline uint32_t GPIOPort::GPIOLow::CalculateResetRegValue(int pin)
 {
-    SET_BIT(reinterpret_cast<GPIO_TypeDef *>(GPIOx_)->BSRR, set_reg_mask_);
-}
-
-inline void GPIOLow::Reset()
-{
-    SET_BIT(reinterpret_cast<GPIO_TypeDef *>(GPIOx_)->BSRR, reset_reg_mask_);
-}
-
-inline void GPIOLow::EnableGPIOxClock_(const uint32_t RCC_AHB1ENR_GPIOxEN)
-{
-    __IO uint32_t tmpreg = 0x00U;
-    SET_BIT(RCC->APB2ENR, RCC_AHB1ENR_GPIOxEN); /* Delay after an RCC peripheral
-                                                   clock enabling */
-    tmpreg = READ_BIT(RCC->APB2ENR, RCC_AHB1ENR_GPIOxEN);
-    (void)tmpreg;
+    return 0x1UL << (pin + GPIO_BSRR_BR0_Pos);
 }
 
 } // namespace hydrv::gpio

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <stm32f4xx.h>
 
 #include "hydrv_gpio_port.hpp"
 
