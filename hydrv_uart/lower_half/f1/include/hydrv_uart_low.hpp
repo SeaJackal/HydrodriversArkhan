@@ -1,7 +1,8 @@
 #pragma once
 
-#include <cstdint>
+#include "hydrv_gpio_port.hpp"
 #include <cstddef>
+#include <cstdint>
 
 extern "C"
 {
@@ -9,37 +10,89 @@ extern "C"
 }
 
 #include "hydrv_gpio_low.hpp"
+#include "hydrv_gpio_mapper.hpp"
 
-namespace hydrv::UART
+namespace hydrv::uart
 {
+
+enum class UARTIndex
+{
+    kUSART3
+};
+
+enum class Speed
+{
+    k115200
+};
+
+template <UARTIndex kIndex, Speed kSpeed>
 class UARTLow
 {
 public:
+    enum class GPIORx;
+    enum class GPIOTx;
+
+    class UARTLowHandler;
+
+    consteval UARTLow(gpio::GPIOMapper &gpio_mapper, GPIORx rx_pin,
+                      GPIOTx tx_pin, int IRQ_priority);
+
+private:
     struct UARTPreset
     {
-        const uint32_t USARTx;
+        uint32_t USARTx;
 
-        const uint8_t GPIO_alt_func;
+        uint8_t GPIO_alt_func;
 
-        const uint32_t RCC_APBENR_UARTxEN;
-        const uint32_t RCC_address;
+        uint32_t RCC_APBENR_UARTxEN;
+        uint32_t RCC_address;
 
-        const IRQn_Type USARTx_IRQn;
+        IRQn_Type USARTx_IRQn;
 
         unsigned mantissa;
         unsigned fraction;
     };
 
-public:
-    static constexpr UARTPreset USART3_115200_LOW{
-        USART3_BASE, 7, RCC_APB1ENR_USART3EN, RCC_BASE + offsetof(RCC_TypeDef, APB1ENR), USART3_IRQn, 17, 6};
+    static constexpr UARTPreset GetPreset();
+    static consteval gpio::GPIOPort::GPIOLow
+    GetRxPin(gpio::GPIOMapper &gpio_mapper, GPIORx rx_pin);
+    static consteval gpio::GPIOPort::GPIOLow
+    GetTxPin(gpio::GPIOMapper &gpio_mapper, GPIOTx tx_pin);
 
-public:
-    consteval UARTLow(const UARTPreset &preset, hydrv::GPIO::GPIOLow &rx_pin,
-                      hydrv::GPIO::GPIOLow &tx_pin, unsigned IRQ_priority);
+    static constexpr uint32_t CountCR1Mask();
+    static constexpr uint32_t CountCR2Mask();
+    static constexpr uint32_t CountBRRMask(const UARTPreset &preset);
 
+    static void EnableUARTClock(uint32_t rcc_address, uint32_t en_bit);
+    static constexpr uint32_t USARTBRRDIVFractionVal(uint32_t val);
+    static constexpr uint32_t USARTBRRDIVMantissaVal(uint32_t val);
+    static constexpr uint32_t USARTCR2Stop1bit();
+
+    const int IRQ_priority_;
+    const gpio::GPIOPort::GPIOLow rx_pin_;
+    gpio::GPIOPort::GPIOLow tx_pin_;
+
+    const uint32_t cr1_;
+    const uint32_t cr2_;
+    const uint32_t brr_;
+};
+
+template <>
+enum class UARTLow<UARTIndex::kUSART3, Speed::k115200>::GPIORx {
+    kB11
+};
+
+template <>
+enum class UARTLow<UARTIndex::kUSART3, Speed::k115200>::GPIOTx {
+    kB10
+};
+
+template <UARTIndex kIndex, Speed kSpeed>
+class UARTLow<kIndex, kSpeed>::UARTLowHandler
+{
 public:
-    void Init();
+    UARTLowHandler(UARTLow<kIndex, kSpeed> &uart_low);
+
     bool IsRxDone();
     bool IsTxDone();
 
@@ -55,89 +108,170 @@ public:
     void EnableDMAReceive();
 
 private:
-    static constexpr uint32_t CountCR1Mask_();
-    static constexpr uint32_t CountCR2Mask_();
-    static constexpr uint32_t CountBRRMask_(const UARTPreset &preset);
-
-    static void EnableUARTClock_(uint32_t rcc_address, uint32_t en_bit);
-    static constexpr uint32_t USARTBRRDIVFractionVal_(uint32_t val);
-    static constexpr uint32_t USARTBRRDIVMantissaVal_(uint32_t val);
-    static constexpr uint32_t USARTCR2Stop1bit_();
-
-private:
-    UARTPreset preset_;
-    unsigned IRQ_priority_;
-    hydrv::GPIO::GPIOLow &rx_pin_;
-    hydrv::GPIO::GPIOLow &tx_pin_;
-
-    const uint32_t cr1_;
-    const uint32_t cr2_;
-    const uint32_t brr_;
+    UARTLow<kIndex, kSpeed> &uart_low_;
 };
 
-consteval UARTLow::UARTLow(const UARTPreset &preset,
-                           hydrv::GPIO::GPIOLow &rx_pin,
-                           hydrv::GPIO::GPIOLow &tx_pin, unsigned IRQ_priority)
-    : preset_(preset),
-      IRQ_priority_(IRQ_priority),
-      rx_pin_(rx_pin),
-      tx_pin_(tx_pin),
-      cr1_(CountCR1Mask_()),
-      cr2_(CountCR2Mask_()),
-      brr_(CountBRRMask_(preset))
+template <UARTIndex kIndex, Speed kSpeed>
+consteval UARTLow<kIndex, kSpeed>::UARTLow(gpio::GPIOMapper &gpio_mapper,
+                                           GPIORx rx_pin, GPIOTx tx_pin,
+                                           int IRQ_priority)
+    : IRQ_priority_(IRQ_priority),
+      rx_pin_(GetRxPin(gpio_mapper, rx_pin)),
+      tx_pin_(GetTxPin(gpio_mapper, tx_pin)),
+      cr1_(CountCR1Mask()),
+      cr2_(CountCR2Mask()),
+      brr_(CountBRRMask(GetPreset()))
 {
 }
 
-inline void UARTLow::Init()
+template <>
+constexpr UARTLow<UARTIndex::kUSART3, Speed::k115200>::UARTPreset
+UARTLow<UARTIndex::kUSART3, Speed::k115200>::GetPreset()
 {
-    EnableUARTClock_(preset_.RCC_address, preset_.RCC_APBENR_UARTxEN);
-    NVIC_SetPriority(preset_.USARTx_IRQn, IRQ_priority_);
-    NVIC_EnableIRQ(preset_.USARTx_IRQn);
-
-    CLEAR_BIT(reinterpret_cast<USART_TypeDef*>(preset_.USARTx)->CR1, USART_CR1_UE);
-
-    reinterpret_cast<USART_TypeDef*>(preset_.USARTx)->CR1 = cr1_;
-    reinterpret_cast<USART_TypeDef*>(preset_.USARTx)->CR2 = cr2_;
-    reinterpret_cast<USART_TypeDef*>(preset_.USARTx)->BRR = brr_;
-
-    SET_BIT(reinterpret_cast<USART_TypeDef*>(preset_.USARTx)->CR1, USART_CR1_UE);
-
-    rx_pin_.Init(preset_.GPIO_alt_func);
-    tx_pin_.Init(preset_.GPIO_alt_func);
+    return {.USARTx = USART3_BASE,
+            .GPIO_alt_func = 7,
+            .RCC_APBENR_UARTxEN = RCC_APB1ENR_USART3EN,
+            .RCC_address = RCC_BASE + offsetof(RCC_TypeDef, APB1ENR),
+            .USARTx_IRQn = USART3_IRQn,
+            .mantissa = 17,
+            .fraction = 6};
 }
 
-inline bool UARTLow::IsRxDone() { return READ_BIT(reinterpret_cast<USART_TypeDef*>(preset_.USARTx)->SR, USART_SR_RXNE); }
-inline bool UARTLow::IsTxDone() { return READ_BIT(reinterpret_cast<USART_TypeDef*>(preset_.USARTx)->SR, USART_SR_TC); }
-inline uint8_t UARTLow::GetRx() { return reinterpret_cast<USART_TypeDef*>(preset_.USARTx)->DR; }
-inline void UARTLow::SetTx(uint8_t byte) { reinterpret_cast<USART_TypeDef*>(preset_.USARTx)->DR = byte; }
-inline void UARTLow::EnableTxInterruption()
+template <>
+consteval gpio::GPIOPort::GPIOLow
+UARTLow<UARTIndex::kUSART3, Speed::k115200>::GetRxPin(
+    gpio::GPIOMapper &gpio_mapper,
+    UARTLow<UARTIndex::kUSART3, Speed::k115200>::GPIORx rx_pin)
 {
-    SET_BIT(reinterpret_cast<USART_TypeDef*>(preset_.USARTx)->CR1, USART_CR1_TCIE);
-}
-inline void UARTLow::DisableTxInterruption()
-{
-    CLEAR_BIT(reinterpret_cast<USART_TypeDef*>(preset_.USARTx)->CR1, USART_CR1_TCIE);
-}
-inline void UARTLow::EnableRxInterruption()
-{
-    SET_BIT(reinterpret_cast<USART_TypeDef*>(preset_.USARTx)->CR1, USART_CR1_RXNEIE);
-}
-inline void UARTLow::DisableRxInterruption()
-{
-    CLEAR_BIT(reinterpret_cast<USART_TypeDef*>(preset_.USARTx)->CR1, USART_CR1_RXNEIE);
-}
-
-inline void UARTLow::EnableDMATransmit()
-{
-    SET_BIT(reinterpret_cast<USART_TypeDef*>(preset_.USARTx)->CR3, USART_CR3_DMAT);
+    switch (rx_pin)
+    {
+    case UARTLow<UARTIndex::kUSART3, Speed::k115200>::GPIORx::kB11:
+        if (!gpio_mapper.IsGPIOMapped(gpio::GPIOPort::Index::kGPIOB, 11))
+        {
+            int a = 1 / 0;
+        }
+        return gpio::GPIOPort::GPIOLow(
+            gpio_mapper.GetPort(gpio::GPIOPort::Index::kGPIOB), 11,
+            GetPreset().GPIO_alt_func);
+    default:
+        int a = 1 / 0;
+    }
 }
 
-inline void UARTLow::EnableDMAReceive()
+template <>
+consteval gpio::GPIOPort::GPIOLow
+UARTLow<UARTIndex::kUSART3, Speed::k115200>::GetTxPin(
+    gpio::GPIOMapper &gpio_mapper,
+    UARTLow<UARTIndex::kUSART3, Speed::k115200>::GPIOTx tx_pin)
 {
-    SET_BIT(reinterpret_cast<USART_TypeDef*>(preset_.USARTx)->CR3, USART_CR3_DMAR);
+    switch (tx_pin)
+    {
+    case UARTLow<UARTIndex::kUSART3, Speed::k115200>::GPIOTx::kB10:
+        if (!gpio_mapper.IsGPIOMapped(gpio::GPIOPort::Index::kGPIOB, 10))
+        {
+            int a = 1 / 0;
+        }
+        return gpio::GPIOPort::GPIOLow(
+            gpio_mapper.GetPort(gpio::GPIOPort::Index::kGPIOB), 10,
+            GetPreset().GPIO_alt_func);
+    default:
+        int a = 1 / 0;
+    }
 }
 
-constexpr uint32_t UARTLow::CountCR1Mask_()
+template <UARTIndex kIndex, Speed kSpeed>
+UARTLow<kIndex, kSpeed>::UARTLowHandler::UARTLowHandler(
+    UARTLow<kIndex, kSpeed> &uart_low)
+    : uart_low_(uart_low)
+{
+    auto preset = UARTLow<kIndex, kSpeed>::GetPreset();
+    EnableUARTClock_(preset.RCC_address, preset.RCC_APBENR_UARTxEN);
+    NVIC_SetPriority(preset.USARTx_IRQn, uart_low_.IRQ_priority_);
+    NVIC_EnableIRQ(preset.USARTx_IRQn);
+
+    auto USARTx = reinterpret_cast<USART_TypeDef *>(preset.USARTx);
+
+    CLEAR_BIT(USARTx->CR1, USART_CR1_UE);
+
+    USARTx->CR1 = uart_low_.cr1_;
+    USARTx->CR2 = uart_low_.cr2_;
+    USARTx->BRR = uart_low_.brr_;
+
+    SET_BIT(USARTx->CR1, USART_CR1_UE);
+}
+
+template <UARTIndex kIndex, Speed kSpeed>
+bool UARTLow<kIndex, kSpeed>::UARTLowHandler::IsRxDone()
+{
+    return READ_BIT(reinterpret_cast<USART_TypeDef *>(
+                        UARTLow<kIndex, kSpeed>::GetPreset().USARTx)
+                        ->SR,
+                    USART_SR_RXNE);
+}
+
+template <UARTIndex kIndex, Speed kSpeed>
+bool UARTLow<kIndex, kSpeed>::UARTLowHandler::IsTxDone()
+{
+    return READ_BIT(reinterpret_cast<USART_TypeDef *>(
+                        UARTLow<kIndex, kSpeed>::GetPreset().USARTx)
+                        ->SR,
+                    USART_SR_TC);
+}
+
+template <UARTIndex kIndex, Speed kSpeed>
+uint8_t UARTLow<kIndex, kSpeed>::UARTLowHandler::GetRx()
+{
+    return reinterpret_cast<USART_TypeDef *>(
+               UARTLow<kIndex, kSpeed>::GetPreset().USARTx)
+        ->DR;
+}
+
+template <UARTIndex kIndex, Speed kSpeed>
+void UARTLow<kIndex, kSpeed>::UARTLowHandler::SetTx(uint8_t byte)
+{
+    reinterpret_cast<USART_TypeDef *>(
+        UARTLow<kIndex, kSpeed>::GetPreset().USARTx)
+        ->DR = byte;
+}
+
+template <UARTIndex kIndex, Speed kSpeed>
+void UARTLow<kIndex, kSpeed>::UARTLowHandler::EnableRxInterruption()
+{
+    SET_BIT(reinterpret_cast<USART_TypeDef *>(
+                UARTLow<kIndex, kSpeed>::GetPreset().USARTx)
+                ->CR1,
+            USART_CR1_RXNEIE);
+}
+
+template <UARTIndex kIndex, Speed kSpeed>
+void UARTLow<kIndex, kSpeed>::UARTLowHandler::DisableRxInterruption()
+{
+    CLEAR_BIT(reinterpret_cast<USART_TypeDef *>(
+                  UARTLow<kIndex, kSpeed>::GetPreset().USARTx)
+                  ->CR1,
+              USART_CR1_RXNEIE);
+}
+
+template <UARTIndex kIndex, Speed kSpeed>
+void UARTLow<kIndex, kSpeed>::UARTLowHandler::EnableDMATransmit()
+{
+    SET_BIT(reinterpret_cast<USART_TypeDef *>(
+                UARTLow<kIndex, kSpeed>::GetPreset().USARTx)
+                ->CR3,
+            USART_CR3_DMAT);
+}
+
+template <UARTIndex kIndex, Speed kSpeed>
+void UARTLow<kIndex, kSpeed>::UARTLowHandler::EnableDMAReceive()
+{
+    SET_BIT(reinterpret_cast<USART_TypeDef *>(
+                UARTLow<kIndex, kSpeed>::GetPreset().USARTx)
+                ->CR3,
+            USART_CR3_DMAR);
+}
+
+template <UARTIndex kIndex, Speed kSpeed>
+constexpr uint32_t UARTLow<kIndex, kSpeed>::CountCR1Mask()
 {
     uint32_t cr1 = 0;
     CLEAR_BIT(cr1, USART_CR1_M);   // 8 bits including parity
@@ -150,45 +284,55 @@ constexpr uint32_t UARTLow::CountCR1Mask_()
     return cr1;
 }
 
-constexpr uint32_t UARTLow::CountCR2Mask_()
+template <UARTIndex kIndex, Speed kSpeed>
+constexpr uint32_t UARTLow<kIndex, kSpeed>::CountCR2Mask()
 {
     uint32_t cr2 = 0;
-    MODIFY_REG(cr2, USART_CR2_STOP, USARTCR2Stop1bit_());
+    MODIFY_REG(cr2, USART_CR2_STOP, USARTCR2Stop1bit());
     return cr2;
 }
 
-constexpr uint32_t UARTLow::CountBRRMask_(const UARTPreset &preset)
+template <UARTIndex kIndex, Speed kSpeed>
+constexpr uint32_t
+UARTLow<kIndex, kSpeed>::CountBRRMask(const UARTPreset &preset)
 {
     uint32_t brr = 0;
     MODIFY_REG(brr, USART_BRR_DIV_Fraction,
-               USARTBRRDIVFractionVal_(preset.fraction));
+               USARTBRRDIVFractionVal(preset.fraction));
     MODIFY_REG(brr, USART_BRR_DIV_Mantissa,
-               USARTBRRDIVMantissaVal_(preset.mantissa));
+               USARTBRRDIVMantissaVal(preset.mantissa));
     return brr;
 }
 
-inline void UARTLow::EnableUARTClock_(uint32_t rcc_address, uint32_t en_bit)
+template <UARTIndex kIndex, Speed kSpeed>
+void UARTLow<kIndex, kSpeed>::EnableUARTClock(uint32_t rcc_address,
+                                              uint32_t en_bit)
 {
-    volatile uint32_t* rcc_reg = reinterpret_cast<volatile uint32_t*>(rcc_address);
+    volatile uint32_t *rcc_reg =
+        reinterpret_cast<volatile uint32_t *>(rcc_address);
     __IO uint32_t tmpreg = 0x00U;
-    SET_BIT(*rcc_reg, en_bit); /* Delay after an RCC peripheral clock enabling */
+    SET_BIT(*rcc_reg,
+            en_bit); /* Delay after an RCC peripheral clock enabling */
     tmpreg = READ_BIT(*rcc_reg, en_bit);
     (void)tmpreg;
 }
 
-constexpr uint32_t UARTLow::USARTBRRDIVFractionVal_(uint32_t val)
+template <UARTIndex kIndex, Speed kSpeed>
+constexpr uint32_t UARTLow<kIndex, kSpeed>::USARTBRRDIVFractionVal(uint32_t val)
 {
     return val << USART_BRR_DIV_Fraction_Pos;
 }
 
-constexpr uint32_t UARTLow::USARTBRRDIVMantissaVal_(uint32_t val)
+template <UARTIndex kIndex, Speed kSpeed>
+constexpr uint32_t UARTLow<kIndex, kSpeed>::USARTBRRDIVMantissaVal(uint32_t val)
 {
     return val << USART_BRR_DIV_Mantissa_Pos;
 }
 
-constexpr uint32_t UARTLow::USARTCR2Stop1bit_()
+template <UARTIndex kIndex, Speed kSpeed>
+constexpr uint32_t UARTLow<kIndex, kSpeed>::USARTCR2Stop1bit()
 {
     return 0x0UL << USART_CR2_STOP_Pos;
 }
 
-} // namespace hydrv::UART
+} // namespace hydrv::uart
