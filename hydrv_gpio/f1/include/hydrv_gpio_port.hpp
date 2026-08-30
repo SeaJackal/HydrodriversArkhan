@@ -62,20 +62,18 @@ public:
     static constexpr GPIOPreset kUART_TX{
         Mode::kOutput10MHz, Configure::kAlternateFunctionPushPullOutput};
     static constexpr GPIOPreset kUART_RX{Mode::kInput,
-                                             Configure::kFloatingInput};
+                                         Configure::kFloatingInput};
     static constexpr GPIOPreset kSPIInput{Mode::kInput,
-                                               Configure::kFloatingInput};
+                                          Configure::kFloatingInput};
     static constexpr GPIOPreset kSPIOutput{
         Mode::kOutput50MHz, Configure::kAlternateFunctionPushPullOutput};
 
     static constexpr int kPinCount = 16;
 
-    consteval GPIOPort() = default;
-
     template <typename T>
     consteval GPIOPort(Index port, T pins);
 
-    void Init();
+    void Init() const;
 
 private:
     struct PortInfo
@@ -114,8 +112,6 @@ private:
     uint32_t GPIOx_ = 0;
 
     ControlReg control_reg_;
-
-    bool is_inited_ = false;
 };
 
 template <typename T>
@@ -126,21 +122,14 @@ consteval GPIOPort::GPIOPort(Index port, T pins)
 {
 }
 
-inline void GPIOPort::Init()
+inline void GPIOPort::Init() const
 {
-    if (is_inited_)
-    {
-        return;
-    }
-
     EnableGPIOxClock(RCC_APB2ENR_IOPxEN_);
 
     auto GPIOx = reinterpret_cast<GPIO_TypeDef *>(GPIOx_);
 
     GPIOx->CRH = control_reg_.high;
     GPIOx->CRL = control_reg_.low;
-
-    is_inited_ = true;
 }
 
 consteval GPIOPort::PortInfo GPIOPort::GetPortInfo(Index port)

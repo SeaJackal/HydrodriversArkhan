@@ -11,10 +11,10 @@ class GPIOPort::GPIOLow
 public:
     class GPIOLowHandler;
 
-    consteval GPIOLow(GPIOPort &GPIO_port, int pin, int altfunc);
+    consteval GPIOLow(const GPIOPort &GPIO_port, int pin, int altfunc);
 
 private:
-    GPIOPort &GPIO_port_;
+    const GPIOPort &GPIO_port_;
 
     const uint32_t set_reg_mask_;
     const uint32_t reset_reg_mask_;
@@ -54,7 +54,7 @@ inline void GPIOPort::GPIOLow::GPIOLowHandler::Reset()
     GPIOx->BSRR = GPIO_low_.reset_reg_mask_;
 }
 
-consteval inline GPIOPort::GPIOLow::GPIOLow(GPIOPort &GPIO_port, int pin,
+consteval inline GPIOPort::GPIOLow::GPIOLow(const GPIOPort &GPIO_port, int pin,
                                             [[maybe_unused]] int altfunc)
     : GPIO_port_(GPIO_port),
       set_reg_mask_(CalculateSetRegValue(pin)),

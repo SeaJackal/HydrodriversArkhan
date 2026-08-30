@@ -16,7 +16,7 @@ constinit hydrv::gpio::GPIO led_pin_base(hydrv::gpio::GPIOPort::Index::kGPIOD,
 
 #elif defined(STM32F103xB)
 
-constinit hydrv::gpio::GPIOMapper gpio_mapper{
+constexpr hydrv::gpio::GPIOMapper gpio_mapper{
     {.port = hydrv::gpio::GPIOPort::Index::kGPIOC,
      .pin = 13,
      .preset = hydrv::gpio::GPIOPort::kOutput}};
@@ -26,7 +26,9 @@ constinit hydrv::gpio::GPIO led_pin_base(hydrv::gpio::GPIOPort::Index::kGPIOC,
 
 #endif
 
-hydrv::gpio::GPIO::GPIOHandler led_pin(led_pin_base);
+hydrv::gpio::GPIOMapper::GPIOPortsHandler gpio_ports_handler(gpio_mapper);
+
+hydrv::gpio::GPIO::GPIOHandler led_pin(led_pin_base, gpio_ports_handler);
 
 int main(void)
 {

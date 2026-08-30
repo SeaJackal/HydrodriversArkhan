@@ -34,7 +34,7 @@ public:
 
     class UARTLowHandler;
 
-    consteval UARTLow(gpio::GPIOMapper &gpio_mapper, GPIORx rx_pin,
+    consteval UARTLow(const gpio::GPIOMapper &gpio_mapper, GPIORx rx_pin,
                       GPIOTx tx_pin, int IRQ_priority);
 
 private:
@@ -55,9 +55,9 @@ private:
 
     static constexpr UARTPreset GetPreset();
     static consteval gpio::GPIOPort::GPIOLow
-    GetRxPin(gpio::GPIOMapper &gpio_mapper, GPIORx rx_pin);
+    GetRxPin(const gpio::GPIOMapper &gpio_mapper, GPIORx rx_pin);
     static consteval gpio::GPIOPort::GPIOLow
-    GetTxPin(gpio::GPIOMapper &gpio_mapper, GPIOTx tx_pin);
+    GetTxPin(const gpio::GPIOMapper &gpio_mapper, GPIOTx tx_pin);
 
     static constexpr uint32_t CountCR1Mask();
     static constexpr uint32_t CountCR2Mask();
@@ -112,7 +112,7 @@ private:
 };
 
 template <UARTIndex kIndex, Speed kSpeed>
-consteval UARTLow<kIndex, kSpeed>::UARTLow(gpio::GPIOMapper &gpio_mapper,
+consteval UARTLow<kIndex, kSpeed>::UARTLow(const gpio::GPIOMapper &gpio_mapper,
                                            GPIORx rx_pin, GPIOTx tx_pin,
                                            int IRQ_priority)
     : IRQ_priority_(IRQ_priority),
@@ -140,7 +140,7 @@ UARTLow<UARTIndex::kUSART3, Speed::k115200>::GetPreset()
 template <>
 consteval gpio::GPIOPort::GPIOLow
 UARTLow<UARTIndex::kUSART3, Speed::k115200>::GetRxPin(
-    gpio::GPIOMapper &gpio_mapper,
+    const gpio::GPIOMapper &gpio_mapper,
     UARTLow<UARTIndex::kUSART3, Speed::k115200>::GPIORx rx_pin)
 {
     switch (rx_pin)
@@ -161,7 +161,7 @@ UARTLow<UARTIndex::kUSART3, Speed::k115200>::GetRxPin(
 template <>
 consteval gpio::GPIOPort::GPIOLow
 UARTLow<UARTIndex::kUSART3, Speed::k115200>::GetTxPin(
-    gpio::GPIOMapper &gpio_mapper,
+    const gpio::GPIOMapper &gpio_mapper,
     UARTLow<UARTIndex::kUSART3, Speed::k115200>::GPIOTx tx_pin)
 {
     switch (tx_pin)
@@ -185,7 +185,7 @@ UARTLow<kIndex, kSpeed>::UARTLowHandler::UARTLowHandler(
     : uart_low_(uart_low)
 {
     auto preset = UARTLow<kIndex, kSpeed>::GetPreset();
-    EnableUARTClock_(preset.RCC_address, preset.RCC_APBENR_UARTxEN);
+    EnableUARTClock(preset.RCC_address, preset.RCC_APBENR_UARTxEN);
     NVIC_SetPriority(preset.USARTx_IRQn, uart_low_.IRQ_priority_);
     NVIC_EnableIRQ(preset.USARTx_IRQn);
 
@@ -250,6 +250,24 @@ void UARTLow<kIndex, kSpeed>::UARTLowHandler::DisableRxInterruption()
                   UARTLow<kIndex, kSpeed>::GetPreset().USARTx)
                   ->CR1,
               USART_CR1_RXNEIE);
+}
+
+template <UARTIndex kIndex, Speed kSpeed>
+void UARTLow<kIndex, kSpeed>::UARTLowHandler::EnableTxInterruption()
+{
+    SET_BIT(reinterpret_cast<USART_TypeDef *>(
+                UARTLow<kIndex, kSpeed>::GetPreset().USARTx)
+                ->CR1,
+            USART_CR1_TXEIE);
+}
+
+template <UARTIndex kIndex, Speed kSpeed>
+void UARTLow<kIndex, kSpeed>::UARTLowHandler::DisableTxInterruption()
+{
+    CLEAR_BIT(reinterpret_cast<USART_TypeDef *>(
+                  UARTLow<kIndex, kSpeed>::GetPreset().USARTx)
+                  ->CR1,
+              USART_CR1_TXEIE);
 }
 
 template <UARTIndex kIndex, Speed kSpeed>

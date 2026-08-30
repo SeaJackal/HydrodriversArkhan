@@ -12,6 +12,8 @@ namespace hydrv::gpio
 class GPIOMapper
 {
 public:
+    class GPIOPortsHandler;
+
     struct GPIOData
     {
         GPIOPort::Index port;
@@ -22,7 +24,7 @@ public:
     consteval GPIOMapper(std::initializer_list<GPIOData> gpio_data);
 
     consteval bool IsGPIOMapped(GPIOPort::Index port, int pin) const;
-    consteval GPIOPort &GetPort(GPIOPort::Index port);
+    consteval const GPIOPort &GetPort(GPIOPort::Index port) const;
 
 private:
     static consteval bool
@@ -39,6 +41,21 @@ private:
     std::span<GPIOData> gpio_data_;
     std::array<GPIOPort, GPIOPort::kPortsCount> gpio_ports_;
 };
+
+class GPIOMapper::GPIOPortsHandler
+{
+public:
+    GPIOPortsHandler(const GPIOMapper &gpio_mapper);
+};
+
+inline GPIOMapper::GPIOPortsHandler::GPIOPortsHandler(
+    const GPIOMapper &gpio_mapper)
+{
+    for (const auto &port : gpio_mapper.gpio_ports_)
+    {
+        port.Init();
+    }
+}
 
 consteval GPIOMapper::GPIOMapper(std::initializer_list<GPIOData> gpio_data)
     : gpio_data_(std::span(gpio_data_buffer_).subspan(0, gpio_data.size()))
@@ -66,7 +83,7 @@ consteval bool GPIOMapper::IsGPIOMapped(GPIOPort::Index port, int pin) const
         { return gpio.port == port && gpio.pin == pin; });
 }
 
-consteval GPIOPort &GPIOMapper::GetPort(GPIOPort::Index port)
+consteval const GPIOPort &GPIOMapper::GetPort(GPIOPort::Index port) const
 {
     return gpio_ports_[port];
 }

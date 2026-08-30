@@ -1,34 +1,45 @@
 #include "hydrv_clock.hpp"
+#include "hydrv_gpio.hpp"
 #include "hydrv_gpio_low.hpp"
 #include "hydrv_uart.hpp"
 
-#define BUFFER_LENGTH 5 // TODO:make variable
+constexpr hydrv::gpio::GPIOMapper gpio_mapper{
+    {.port = hydrv::gpio::GPIOPort::Index::kGPIOB,
+     .pin = 11,
+     .preset = hydrv::gpio::GPIOPort::kUART_RX},
+    {.port = hydrv::gpio::GPIOPort::Index::kGPIOB,
+     .pin = 10,
+     .preset = hydrv::gpio::GPIOPort::kUART_TX}};
 
-constinit hydrv::GPIO::GPIOLow led_pin(hydrv::GPIO::GPIOLow::GPIOD_port, 15,
-                                       hydrv::GPIO::GPIOLow::GPIO_Output);
-constinit hydrv::GPIO::GPIOLow rx_pin(hydrv::GPIO::GPIOLow::GPIOB_port, 11,
-                                      hydrv::GPIO::GPIOLow::GPIO_UART_RX);
-constinit hydrv::GPIO::GPIOLow tx_pin(hydrv::GPIO::GPIOLow::GPIOB_port, 10,
-                                      hydrv::GPIO::GPIOLow::GPIO_UART_TX);
-constinit hydrv::UART::UART<255, 255>
-    uart(hydrv::UART::UARTLow::USART3_115200_LOW, rx_pin, tx_pin, 7);
+hydrv::gpio::GPIOMapper::GPIOPortsHandler gpio_ports_handler(gpio_mapper);
 
-uint8_t buffer[BUFFER_LENGTH];
+constinit hydrv::uart::UART<hydrv::uart::UARTIndex::kUSART3,
+                            hydrv::uart::Speed::k115200, 255, 255>
+    uart_base(gpio_mapper,
+              hydrv::uart::UARTLow<hydrv::uart::UARTIndex::kUSART3,
+                                   hydrv::uart::Speed::k115200>::GPIORx::kB11,
+              hydrv::uart::UARTLow<hydrv::uart::UARTIndex::kUSART3,
+                                   hydrv::uart::Speed::k115200>::GPIOTx::kB10,
+              7);
+
+decltype(uart_base)::UARTHandler uart(uart_base, gpio_ports_handler);
+
+constexpr int kBufferSize = 5;
+
+std::array<std::byte, kBufferSize> buffer;
 
 int main(void)
 {
     hydrv::clock::Clock::Init(hydrv::clock::Clock::HSI_DEFAULT);
     NVIC_SetPriorityGrouping(0);
-    led_pin.Init();
-    uart.Init();
 
     while (1)
     {
         unsigned rx_length = uart.GetRxLength();
         if (rx_length >= 5)
         {
-            uart.Read(buffer, BUFFER_LENGTH);
-            uart.Transmit(buffer, BUFFER_LENGTH);
+            uart.Read(buffer);
+            uart.Transmit(buffer);
         }
     }
 }

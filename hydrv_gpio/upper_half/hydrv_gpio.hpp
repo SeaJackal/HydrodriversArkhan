@@ -13,7 +13,7 @@ public:
     class GPIOHandler;
 
     consteval GPIO(GPIOPort::Index port, int pin, int altfunc,
-                   GPIOMapper &gpio_mapper);
+                   const GPIOMapper &gpio_mapper);
 
 private:
     GPIOPort::GPIOLow gpio_;
@@ -22,7 +22,9 @@ private:
 class GPIO::GPIOHandler
 {
 public:
-    GPIOHandler(GPIO &gpio);
+    GPIOHandler(
+        GPIO &gpio,
+        [[maybe_unused]] const GPIOMapper::GPIOPortsHandler &gpio_mapper);
 
     void Set();
     void Reset();
@@ -32,12 +34,18 @@ private:
 };
 
 consteval GPIO::GPIO(GPIOPort::Index port, int pin, int altfunc,
-                     GPIOMapper &gpio_mapper)
+                     const GPIOMapper &gpio_mapper)
     : gpio_(gpio_mapper.GetPort(port), pin, altfunc)
 {
+    if (!gpio_mapper.IsGPIOMapped(port, pin))
+    {
+        int a = 1 / 0;
+    }
 }
 
-inline GPIO::GPIOHandler::GPIOHandler(GPIO &gpio)
+inline GPIO::GPIOHandler::GPIOHandler(
+    GPIO &gpio,
+    [[maybe_unused]] const GPIOMapper::GPIOPortsHandler &gpio_mapper)
     : gpio_low_handler_(gpio.gpio_)
 {
 }
