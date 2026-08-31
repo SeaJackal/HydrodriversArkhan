@@ -6,7 +6,7 @@ add_executable(${TARGET_NAME}
 target_compile_options(${TARGET_NAME} PRIVATE -save-temps=obj)
 
 target_link_libraries(${TARGET_NAME}
-    HydrodriversClock HydrodriversGPIO)
+    HydrodriversClock HydrodriversGPIO HydrodriversEnv)
 
 get_property(HYDRV_RENODE_TEST_HELPER GLOBAL PROPERTY HYDRV_RENODE_TEST_HELPER)
 include(${HYDRV_RENODE_TEST_HELPER})

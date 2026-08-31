@@ -1,18 +1,22 @@
 #include "hydrv_clock.hpp"
-#include "hydrv_gpio.hpp"
-#include "hydrv_gpio_mapper.hpp"
+#include "hydrv_env.hpp"
+#include "hydrv_gpio_low.hpp"
 
 #include <chrono>
 
 #if defined(STM32F407xx)
 
-constinit hydrv::gpio::GPIOMapper gpio_mapper{
-    {.port = hydrv::gpio::GPIOPort::Index::kGPIOD,
-     .pin = 12,
-     .preset = hydrv::gpio::GPIOPort::kOutput}};
+constexpr hydrv::EnvBase env_base(
+    hydrv::clock::Clock::HSI_DEFAULT,
+    hydrv::gpio::GPIOLow<hydrv::gpio::GPIOPort::Index::kGPIOD, 12>::Config{
+        .output_type = hydrv::gpio::OutputType::kPushPull,
+        .output_speed = hydrv::gpio::OutputSpeed::kLow,
+        .pull_up_down = hydrv::gpio::PullUpDown::kNo});
 
-constinit hydrv::gpio::GPIO led_pin_base(hydrv::gpio::GPIOPort::Index::kGPIOD,
-                                         12, 0, gpio_mapper);
+decltype(env_base)::Env env(env_base);
+
+hydrv::gpio::GPIOLow<hydrv::gpio::GPIOPort::Index::kGPIOD, 12>::GPIOLowHandler
+    led_pin(env);
 
 #elif defined(STM32F103xB)
 
@@ -26,15 +30,9 @@ constinit hydrv::gpio::GPIO led_pin_base(hydrv::gpio::GPIOPort::Index::kGPIOC,
 
 #endif
 
-hydrv::gpio::GPIOMapper::GPIOPortsHandler gpio_ports_handler(gpio_mapper);
-
-hydrv::gpio::GPIO::GPIOHandler led_pin(led_pin_base, gpio_ports_handler);
-
 int main(void)
 {
     NVIC_SetPriorityGrouping(0);
-
-    hydrv::clock::Clock::Init(hydrv::clock::Clock::HSI_DEFAULT);
 
     while (1)
     {

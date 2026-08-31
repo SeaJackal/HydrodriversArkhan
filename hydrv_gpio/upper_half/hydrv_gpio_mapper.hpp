@@ -18,7 +18,7 @@ public:
     {
         GPIOPort::Index port;
         int pin;
-        GPIOPort::GPIOPreset preset;
+        GPIOPort::GPIOConfig preset;
     };
 
     consteval GPIOMapper(std::initializer_list<GPIOData> gpio_data);

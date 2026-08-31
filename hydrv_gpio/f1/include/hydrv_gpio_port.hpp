@@ -48,24 +48,24 @@ public:
         };
     };
 
-    struct GPIOPreset
+    struct GPIOConfig
     {
         Mode::Value mode;
         Configure::Value configure;
     };
 
-    static constexpr GPIOPreset kOutput{
+    static constexpr GPIOConfig kOutput{
         Mode::Value::kOutput2MHz,
         Configure::Value::kGeneralPurposePushPullOutput};
-    static constexpr GPIOPreset kFastOutput{
+    static constexpr GPIOConfig kFastOutput{
         Mode::kOutput50MHz, Configure::kGeneralPurposePushPullOutput};
-    static constexpr GPIOPreset kUART_TX{
+    static constexpr GPIOConfig kUART_TX{
         Mode::kOutput10MHz, Configure::kAlternateFunctionPushPullOutput};
-    static constexpr GPIOPreset kUART_RX{Mode::kInput,
+    static constexpr GPIOConfig kUART_RX{Mode::kInput,
                                          Configure::kFloatingInput};
-    static constexpr GPIOPreset kSPIInput{Mode::kInput,
+    static constexpr GPIOConfig kSPIInput{Mode::kInput,
                                           Configure::kFloatingInput};
-    static constexpr GPIOPreset kSPIOutput{
+    static constexpr GPIOConfig kSPIOutput{
         Mode::kOutput50MHz, Configure::kAlternateFunctionPushPullOutput};
 
     static constexpr int kPinCount = 16;
