@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstring>
 #include <optional>
+#include <span>
 
 #include "hydrolib_func_concepts.hpp"
 #include "hydrolib_return_codes.hpp"
@@ -12,24 +13,21 @@
 
 namespace hydrv::uart
 {
-template <UARTIndex kIndex, Speed kSpeed, int kRxBufferCapacity,
-          int kTxBufferCapacity,
+template <UARTIndex kIndex, int kRxBufferCapacity, int kTxBufferCapacity,
           typename CallbackType =
               decltype(&hydrolib::concepts::func::DummyFunc<void>)>
 requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
-class UART
+class UARTBase
 {
 public:
-    class UARTHandler;
+    class UART;
 
-    consteval UART(
-        const gpio::GPIOMapper &gpio_mapper,
-        UARTLow<kIndex, kSpeed>::GPIORx rx_pin,
-        UARTLow<kIndex, kSpeed>::GPIOTx tx_pin, int IRQ_priority,
-        CallbackType rx_callback = hydrolib::concepts::func::DummyFunc<void>);
+    template <typename T>
+    UARTBase(const T &env, CallbackType rx_callback =
+                               hydrolib::concepts::func::DummyFunc<void>);
 
 private:
-    UARTLow<kIndex, kSpeed> uart_low_;
+    UARTLowBase<kIndex>::UARTLow uart_low_;
 
     hydrolib::ring_queue::RingQueue<kRxBufferCapacity> rx_queue_;
     hydrolib::ring_queue::RingQueue<kTxBufferCapacity> tx_queue_;
@@ -41,17 +39,14 @@ private:
     CallbackType rx_callback_;
 };
 
-template <UARTIndex kIndex, Speed kSpeed, int kRxBufferCapacity,
-          int kTxBufferCapacity, typename CallbackType>
+template <UARTIndex kIndex, int kRxBufferCapacity, int kTxBufferCapacity,
+          typename CallbackType>
 requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
-class UART<kIndex, kSpeed, kRxBufferCapacity, kTxBufferCapacity,
-           CallbackType>::UARTHandler
+class UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity, CallbackType>::UART
 {
 public:
-    UARTHandler(
-        UART<kIndex, kSpeed, kRxBufferCapacity, kTxBufferCapacity, CallbackType>
-            &uart,
-        [[maybe_unused]] const gpio::GPIOMapper::GPIOPortsHandler &gpio_mapper);
+    UART(UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity, CallbackType>
+             &uart);
 
     void IRQCallback();
 
@@ -70,62 +65,58 @@ protected:
     std::optional<uint8_t> ProcessTx();
 
 private:
-    UART<kIndex, kSpeed, kRxBufferCapacity, kTxBufferCapacity, CallbackType>
+    UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity, CallbackType>
         &uart_base_;
-    UARTLow<kIndex, kSpeed>::UARTLowHandler uart_low_handler_;
+    UARTLowBase<kIndex>::UARTLow uart_low_handler_;
 };
 
-template <UARTIndex kIndex, Speed kSpeed, int kRxBufferCapacity,
-          int kTxBufferCapacity, typename CallbackType>
+template <UARTIndex kIndex, int kRxBufferCapacity, int kTxBufferCapacity,
+          typename CallbackType>
 requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
-consteval UART<kIndex, kSpeed, kRxBufferCapacity, kTxBufferCapacity,
-               CallbackType>::UART(const gpio::GPIOMapper &gpio_mapper,
-                                   UARTLow<kIndex, kSpeed>::GPIORx rx_pin,
-                                   UARTLow<kIndex, kSpeed>::GPIOTx tx_pin,
-                                   int IRQ_priority, CallbackType rx_callback)
-    : uart_low_(gpio_mapper, rx_pin, tx_pin, IRQ_priority),
+template <typename T>
+UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity, CallbackType>::UARTBase(
+    const T &env, CallbackType rx_callback)
+    : uart_low_(env),
       tx_in_progress_flag_(false),
       status_(hydrolib::ReturnCode::OK),
       rx_callback_(rx_callback)
 {
 }
 
-template <UARTIndex kIndex, Speed kSpeed, int kRxBufferCapacity,
-          int kTxBufferCapacity, typename CallbackType>
+template <UARTIndex kIndex, int kRxBufferCapacity, int kTxBufferCapacity,
+          typename CallbackType>
 requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
-UART<kIndex, kSpeed, kRxBufferCapacity, kTxBufferCapacity, CallbackType>::
-    UARTHandler::UARTHandler(
-        UART<kIndex, kSpeed, kRxBufferCapacity, kTxBufferCapacity, CallbackType>
-            &uart,
-        [[maybe_unused]] const gpio::GPIOMapper::GPIOPortsHandler &gpio_mapper)
+UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity, CallbackType>::UART::
+    UART(UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity, CallbackType>
+             &uart)
     : uart_base_(uart), uart_low_handler_(uart.uart_low_)
 {
 }
 
-template <UARTIndex kIndex, Speed kSpeed, int kRxBufferCapacity,
-          int kTxBufferCapacity, typename CallbackType>
+template <UARTIndex kIndex, int kRxBufferCapacity, int kTxBufferCapacity,
+          typename CallbackType>
 requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
-bool UART<kIndex, kSpeed, kRxBufferCapacity, kTxBufferCapacity,
-          CallbackType>::UARTHandler::IsTransmiting() const
+bool UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity,
+              CallbackType>::UART::IsTransmiting() const
 {
     return uart_base_.tx_in_progress_flag_;
 }
 
-template <UARTIndex kIndex, Speed kSpeed, int kRxBufferCapacity,
-          int kTxBufferCapacity, typename CallbackType>
+template <UARTIndex kIndex, int kRxBufferCapacity, int kTxBufferCapacity,
+          typename CallbackType>
 requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
-void UART<kIndex, kSpeed, kRxBufferCapacity, kTxBufferCapacity,
-          CallbackType>::UARTHandler::IRQCallback()
+void UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity,
+              CallbackType>::UART::IRQCallback()
 {
     ProcessRx();
     ProcessTx();
 }
 
-template <UARTIndex kIndex, Speed kSpeed, int kRxBufferCapacity,
-          int kTxBufferCapacity, typename CallbackType>
+template <UARTIndex kIndex, int kRxBufferCapacity, int kTxBufferCapacity,
+          typename CallbackType>
 requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
-int UART<kIndex, kSpeed, kRxBufferCapacity, kTxBufferCapacity,
-         CallbackType>::UARTHandler::Transmit(std::span<const std::byte> data)
+int UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity,
+             CallbackType>::UART::Transmit(std::span<const std::byte> data)
 {
     uart_base_.tx_in_progress_flag_ = true;
     int length = GetTxLength();
@@ -139,11 +130,11 @@ int UART<kIndex, kSpeed, kRxBufferCapacity, kTxBufferCapacity,
     return data_length;
 }
 
-template <UARTIndex kIndex, Speed kSpeed, int kRxBufferCapacity,
-          int kTxBufferCapacity, typename CallbackType>
+template <UARTIndex kIndex, int kRxBufferCapacity, int kTxBufferCapacity,
+          typename CallbackType>
 requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
-int UART<kIndex, kSpeed, kRxBufferCapacity, kTxBufferCapacity,
-         CallbackType>::UARTHandler::Read(std::span<std::byte> data)
+int UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity,
+             CallbackType>::UART::Read(std::span<std::byte> data)
 {
     int length = GetRxLength();
     auto data_length = data.size();
@@ -156,39 +147,38 @@ int UART<kIndex, kSpeed, kRxBufferCapacity, kTxBufferCapacity,
     return data_length;
 }
 
-template <UARTIndex kIndex, Speed kSpeed, int kRxBufferCapacity,
-          int kTxBufferCapacity, typename CallbackType>
+template <UARTIndex kIndex, int kRxBufferCapacity, int kTxBufferCapacity,
+          typename CallbackType>
 requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
-void UART<kIndex, kSpeed, kRxBufferCapacity, kTxBufferCapacity,
-          CallbackType>::UARTHandler::ClearRx()
+void UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity,
+              CallbackType>::UART::ClearRx()
 {
     uart_base_.rx_queue_.Clear();
 }
 
-template <UARTIndex kIndex, Speed kSpeed, int kRxBufferCapacity,
-          int kTxBufferCapacity, typename CallbackType>
+template <UARTIndex kIndex, int kRxBufferCapacity, int kTxBufferCapacity,
+          typename CallbackType>
 requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
-int UART<kIndex, kSpeed, kRxBufferCapacity, kTxBufferCapacity,
-         CallbackType>::UARTHandler::GetRxLength() const
+int UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity,
+             CallbackType>::UART::GetRxLength() const
 {
     return uart_base_.rx_queue_.GetLength();
 }
 
-template <UARTIndex kIndex, Speed kSpeed, int kRxBufferCapacity,
-          int kTxBufferCapacity, typename CallbackType>
+template <UARTIndex kIndex, int kRxBufferCapacity, int kTxBufferCapacity,
+          typename CallbackType>
 requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
-int UART<kIndex, kSpeed, kRxBufferCapacity, kTxBufferCapacity,
-         CallbackType>::UARTHandler::GetTxLength() const
+int UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity,
+             CallbackType>::UART::GetTxLength() const
 {
     return uart_base_.tx_queue_.GetLength();
 }
 
-template <UARTIndex kIndex, Speed kSpeed, int kRxBufferCapacity,
-          int kTxBufferCapacity, typename CallbackType>
+template <UARTIndex kIndex, int kRxBufferCapacity, int kTxBufferCapacity,
+          typename CallbackType>
 requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
-std::optional<uint8_t>
-UART<kIndex, kSpeed, kRxBufferCapacity, kTxBufferCapacity,
-     CallbackType>::UARTHandler::ProcessRx()
+std::optional<uint8_t> UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity,
+                                CallbackType>::UART::ProcessRx()
 {
     if (!uart_low_handler_.IsRxDone())
     {
@@ -210,12 +200,11 @@ UART<kIndex, kSpeed, kRxBufferCapacity, kTxBufferCapacity,
     return rx;
 }
 
-template <UARTIndex kIndex, Speed kSpeed, int kRxBufferCapacity,
-          int kTxBufferCapacity, typename CallbackType>
+template <UARTIndex kIndex, int kRxBufferCapacity, int kTxBufferCapacity,
+          typename CallbackType>
 requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
-std::optional<uint8_t>
-UART<kIndex, kSpeed, kRxBufferCapacity, kTxBufferCapacity,
-     CallbackType>::UARTHandler::ProcessTx()
+std::optional<uint8_t> UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity,
+                                CallbackType>::UART::ProcessTx()
 {
     if (!uart_low_handler_.IsTxDone())
     {

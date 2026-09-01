@@ -1,28 +1,22 @@
 #include "hydrv_clock.hpp"
-#include "hydrv_gpio.hpp"
-#include "hydrv_gpio_low.hpp"
+#include "hydrv_env.hpp"
 #include "hydrv_uart.hpp"
 
-constexpr hydrv::gpio::GPIOMapper gpio_mapper{
-    {.port = hydrv::gpio::GPIOPort::Index::kGPIOB,
-     .pin = 11,
-     .preset = hydrv::gpio::GPIOPort::kUART_RX},
-    {.port = hydrv::gpio::GPIOPort::Index::kGPIOB,
-     .pin = 10,
-     .preset = hydrv::gpio::GPIOPort::kUART_TX}};
+constexpr hydrv::EnvBase
+    env_base(hydrv::clock::Clock::HSI_DEFAULT,
+             hydrv::uart::UARTLowBase<hydrv::uart::UARTIndex::kUSART3>::Config{
+                 .speed = hydrv::uart::UARTLowBase<
+                     hydrv::uart::UARTIndex::kUSART3>::Speed::k115200,
+                 .rx_pin = hydrv::uart::UARTLowBase<
+                     hydrv::uart::UARTIndex::kUSART3>::GPIORx::kB11,
+                 .tx_pin = hydrv::uart::UARTLowBase<
+                     hydrv::uart::UARTIndex::kUSART3>::GPIOTx::kB10});
 
-hydrv::gpio::GPIOMapper::GPIOPortsHandler gpio_ports_handler(gpio_mapper);
+decltype(env_base)::Env env(env_base);
 
-constinit hydrv::uart::UART<hydrv::uart::UARTIndex::kUSART3,
-                            hydrv::uart::Speed::k115200, 255, 255>
-    uart_base(gpio_mapper,
-              hydrv::uart::UARTLow<hydrv::uart::UARTIndex::kUSART3,
-                                   hydrv::uart::Speed::k115200>::GPIORx::kB11,
-              hydrv::uart::UARTLow<hydrv::uart::UARTIndex::kUSART3,
-                                   hydrv::uart::Speed::k115200>::GPIOTx::kB10,
-              7);
+hydrv::uart::UARTBase<hydrv::uart::UARTIndex::kUSART3, 255, 255> uart_base(env);
 
-decltype(uart_base)::UARTHandler uart(uart_base, gpio_ports_handler);
+decltype(uart_base)::UART uart(uart_base);
 
 constexpr int kBufferSize = 5;
 
@@ -30,7 +24,6 @@ std::array<std::byte, kBufferSize> buffer;
 
 int main(void)
 {
-    hydrv::clock::Clock::Init(hydrv::clock::Clock::HSI_DEFAULT);
     NVIC_SetPriorityGrouping(0);
 
     while (1)

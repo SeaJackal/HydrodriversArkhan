@@ -2,7 +2,6 @@
 
 #include <cstdint>
 
-#include "hydrv_env.hpp"
 #include "hydrv_gpio_port.hpp"
 
 namespace hydrv::gpio

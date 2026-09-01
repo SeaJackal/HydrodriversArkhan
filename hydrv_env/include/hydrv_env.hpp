@@ -29,10 +29,10 @@ private:
 
     consteval std::vector<gpio::GPIOPort::RawConfig> ExtractGPIOs(Ts... args);
 
-    template <typename T, int... kGPIOIndexes>
+    template <typename T, std::size_t... kGPIOIndexes>
     static consteval void
-    AddGPIODataToVector(std::vector<gpio::GPIOPort::RawConfig> &configs,
-                        T &arg);
+    AddGPIODataToVector(std::vector<gpio::GPIOPort::RawConfig> &configs, T &arg,
+                        std::index_sequence<kGPIOIndexes...>);
 
     template <typename T, std::size_t... kIndexes>
     static consteval int CalculatePeriphIndex(std::index_sequence<kIndexes...>);
@@ -108,14 +108,17 @@ consteval std::vector<gpio::GPIOPort::RawConfig>
 EnvBase<Ts...>::ExtractGPIOs(Ts... args)
 {
     std::vector<gpio::GPIOPort::RawConfig> configs;
-    (AddGPIODataToVector<Ts, Ts::kGPIOCount>(configs, args), ...);
+    (AddGPIODataToVector(configs, args,
+                         std::make_index_sequence<Ts::kGPIOCount>()),
+     ...);
     return configs;
 }
 
 template <typename... Ts>
-template <typename T, int... kGPIOIndexes>
+template <typename T, std::size_t... kGPIOIndexes>
 consteval void EnvBase<Ts...>::AddGPIODataToVector(
-    std::vector<gpio::GPIOPort::RawConfig> &configs, T &arg)
+    std::vector<gpio::GPIOPort::RawConfig> &configs, T &arg,
+    std::index_sequence<kGPIOIndexes...>)
 {
     if constexpr (sizeof...(kGPIOIndexes) > 1)
     {
