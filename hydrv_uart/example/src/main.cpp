@@ -2,21 +2,20 @@
 #include "hydrv_env.hpp"
 #include "hydrv_uart.hpp"
 
-constexpr hydrv::EnvBase
-    env_base(hydrv::clock::Clock::HSI_DEFAULT,
-             hydrv::uart::UARTLowBase<hydrv::uart::UARTIndex::kUSART3>::Config{
-                 .speed = hydrv::uart::UARTLowBase<
-                     hydrv::uart::UARTIndex::kUSART3>::Speed::k115200,
-                 .rx_pin = hydrv::uart::UARTLowBase<
-                     hydrv::uart::UARTIndex::kUSART3>::GPIORx::kB11,
-                 .tx_pin = hydrv::uart::UARTLowBase<
-                     hydrv::uart::UARTIndex::kUSART3>::GPIOTx::kB10});
+constinit hydrv::EnvBase env_base(
+    hydrv::clock::Clock::HSI_DEFAULT,
+    hydrv::uart::UARTBase<hydrv::uart::UARTIndex::kUSART3, 255, 255>::Config{
+        .speed = hydrv::uart::UARTLowBase<
+            hydrv::uart::UARTIndex::kUSART3>::Speed::k115200,
+        .rx_pin = hydrv::uart::UARTLowBase<
+            hydrv::uart::UARTIndex::kUSART3>::GPIORx::kB11,
+        .tx_pin = hydrv::uart::UARTLowBase<
+            hydrv::uart::UARTIndex::kUSART3>::GPIOTx::kB10});
 
 decltype(env_base)::Env env(env_base);
 
-hydrv::uart::UARTBase<hydrv::uart::UARTIndex::kUSART3, 255, 255> uart_base(env);
-
-decltype(uart_base)::UART uart(uart_base);
+hydrv::uart::UARTBase<hydrv::uart::UARTIndex::kUSART3, 255, 255>::UART
+    uart(env);
 
 constexpr int kBufferSize = 5;
 

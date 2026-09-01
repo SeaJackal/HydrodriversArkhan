@@ -49,13 +49,15 @@ template <typename... Ts>
 class EnvBase<Ts...>::Env
 {
 public:
-    Env(const EnvBase<Ts...> &env_base);
+    Env(EnvBase<Ts...> &env_base);
 
+    template <typename T>
+    auto &GetPeriph();
     template <typename T>
     const auto &GetPeriph() const;
 
 private:
-    const EnvBase<Ts...> &env_base_;
+    EnvBase<Ts...> &env_base_;
 };
 
 template <typename... Ts>
@@ -69,13 +71,21 @@ consteval EnvBase<Ts...>::EnvBase(const clock::Clock::ClockPreset &clock_preset,
 }
 
 template <typename... Ts>
-EnvBase<Ts...>::Env::Env(const EnvBase<Ts...> &env_base) : env_base_(env_base)
+EnvBase<Ts...>::Env::Env(EnvBase<Ts...> &env_base) : env_base_(env_base)
 {
     env_base_.clock_.Init(env_base_.clock_preset_);
     for (const auto &gpio_port : env_base_.gpio_ports_)
     {
         gpio_port.Init();
     }
+}
+
+template <typename... Ts>
+template <typename T>
+auto &EnvBase<Ts...>::Env::GetPeriph()
+{
+    return std::get<CalculatePeriphIndex<T>(
+        std::make_index_sequence<sizeof...(Ts)>())>(env_base_.devices_);
 }
 
 template <typename... Ts>

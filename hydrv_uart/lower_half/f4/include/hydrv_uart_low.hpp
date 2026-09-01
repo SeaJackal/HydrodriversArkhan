@@ -30,22 +30,6 @@ public:
         k115200 = 115200
     };
 
-    struct Config
-    {
-        using Handler = UARTLowBase;
-
-        static constexpr int kGPIOCount = 2;
-
-        Speed speed;
-        GPIORx rx_pin;
-        GPIOTx tx_pin;
-        int IRQ_priority;
-
-        consteval std::tuple<gpio::GPIOPort::RawConfig,
-                             gpio::GPIOPort::RawConfig>
-        GetGPIOConfigs() const;
-    };
-
     class UARTLow;
 
     // static constexpr UARTPreset USART1_115200_LOW{
@@ -93,7 +77,10 @@ public:
     //     2,
     //     14};
 
-    consteval UARTLowBase(const Config &config);
+    static constexpr gpio::GPIOPort::RawConfig GetRxGPIOConfig(GPIORx rx_pin);
+    static constexpr gpio::GPIOPort::RawConfig GetTxGPIOConfig(GPIOTx tx_pin);
+
+    consteval UARTLowBase(UARTLowBase<kIndex>::Speed speed, int IRQ_priority);
 
 private:
     struct UARTPreset
@@ -152,8 +139,7 @@ template <UARTIndex kIndex>
 class UARTLowBase<kIndex>::UARTLow
 {
 public:
-    template <typename T>
-    UARTLow(const T &env);
+    UARTLow(UARTLowBase<kIndex> &uart_low_base);
 
     bool IsRxDone();
     bool IsTxDone();
@@ -174,24 +160,29 @@ private:
 };
 
 template <UARTIndex kIndex>
-consteval std::tuple<gpio::GPIOPort::RawConfig, gpio::GPIOPort::RawConfig>
-UARTLowBase<kIndex>::Config::GetGPIOConfigs() const
+constexpr gpio::GPIOPort::RawConfig
+UARTLowBase<kIndex>::GetRxGPIOConfig(GPIORx rx_pin)
 {
-    return std::make_tuple(
-        gpio::GPIOPort::RawConfig{.pin = GetRxGPIOData(rx_pin).pin,
-                                  .port = GetRxGPIOData(rx_pin).port,
-                                  .mode = gpio::Mode::kAlternate,
-                                  .output_type = gpio::OutputType::kPushPull,
-                                  .output_speed = gpio::OutputSpeed::kVeryHigh,
-                                  .pull_up_down = gpio::PullUpDown::kNo,
-                                  .altfunc = GetUARTPreset().GPIO_alt_func},
-        gpio::GPIOPort::RawConfig{.pin = GetTxGPIOData(tx_pin).pin,
-                                  .port = GetTxGPIOData(tx_pin).port,
-                                  .mode = gpio::Mode::kAlternate,
-                                  .output_type = gpio::OutputType::kPushPull,
-                                  .output_speed = gpio::OutputSpeed::kVeryHigh,
-                                  .pull_up_down = gpio::PullUpDown::kNo,
-                                  .altfunc = GetUARTPreset().GPIO_alt_func});
+    return {.pin = GetRxGPIOData(rx_pin).pin,
+            .port = GetRxGPIOData(rx_pin).port,
+            .mode = gpio::Mode::kAlternate,
+            .output_type = gpio::OutputType::kPushPull,
+            .output_speed = gpio::OutputSpeed::kVeryHigh,
+            .pull_up_down = gpio::PullUpDown::kNo,
+            .altfunc = GetUARTPreset().GPIO_alt_func};
+}
+
+template <UARTIndex kIndex>
+constexpr gpio::GPIOPort::RawConfig
+UARTLowBase<kIndex>::GetTxGPIOConfig(GPIOTx tx_pin)
+{
+    return {.pin = GetTxGPIOData(tx_pin).pin,
+            .port = GetTxGPIOData(tx_pin).port,
+            .mode = gpio::Mode::kAlternate,
+            .output_type = gpio::OutputType::kPushPull,
+            .output_speed = gpio::OutputSpeed::kVeryHigh,
+            .pull_up_down = gpio::PullUpDown::kNo,
+            .altfunc = GetUARTPreset().GPIO_alt_func};
 }
 
 template <>
@@ -270,18 +261,17 @@ void UARTLowBase<kIndex>::EnableUARTClock(uint32_t rcc_address, uint32_t en_bit)
 }
 
 template <UARTIndex kIndex>
-consteval UARTLowBase<kIndex>::UARTLowBase(const Config &config)
-    : IRQ_priority_(config.IRQ_priority),
+consteval UARTLowBase<kIndex>::UARTLowBase(Speed speed, int IRQ_priority)
+    : IRQ_priority_(IRQ_priority),
       cr1_(CountCR1Mask()),
       cr2_(CountCR2Mask()),
-      brr_(CountBRRMask(config.speed))
+      brr_(CountBRRMask(speed))
 {
 }
 
 template <UARTIndex kIndex>
-template <typename T>
-UARTLowBase<kIndex>::UARTLow::UARTLow(const T &env)
-    : uart_low_base_(env.template GetPeriph<UARTLowBase<kIndex>>())
+UARTLowBase<kIndex>::UARTLow::UARTLow(UARTLowBase<kIndex> &uart_low_base)
+    : uart_low_base_(uart_low_base)
 {
     auto preset = uart_low_base_.GetUARTPreset();
     EnableUARTClock(preset.RCC_address, preset.RCC_APBENR_UARTxEN);

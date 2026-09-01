@@ -6,7 +6,7 @@
 
 #if defined(STM32F407xx)
 
-constexpr hydrv::EnvBase env_base(
+constinit hydrv::EnvBase env_base(
     hydrv::clock::Clock::HSI_DEFAULT,
     hydrv::gpio::GPIOLow<hydrv::gpio::GPIOPort::Index::kGPIOD, 12>::Config{
         .output_type = hydrv::gpio::OutputType::kPushPull,

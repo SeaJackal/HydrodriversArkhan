@@ -22,12 +22,28 @@ class UARTBase
 public:
     class UART;
 
-    template <typename T>
-    UARTBase(const T &env, CallbackType rx_callback =
-                               hydrolib::concepts::func::DummyFunc<void>);
+    struct Config
+    {
+        using Handler = UARTBase;
+
+        static constexpr int kGPIOCount = 2;
+
+        UARTLowBase<kIndex>::Speed speed;
+        UARTLowBase<kIndex>::GPIORx rx_pin;
+        UARTLowBase<kIndex>::GPIOTx tx_pin;
+        int IRQ_priority;
+
+        CallbackType rx_callback = hydrolib::concepts::func::DummyFunc<void>;
+
+        consteval std::tuple<gpio::GPIOPort::RawConfig,
+                             gpio::GPIOPort::RawConfig>
+        GetGPIOConfigs() const;
+    };
+
+    consteval UARTBase(const Config &config);
 
 private:
-    UARTLowBase<kIndex>::UARTLow uart_low_;
+    UARTLowBase<kIndex> uart_low_;
 
     hydrolib::ring_queue::RingQueue<kRxBufferCapacity> rx_queue_;
     hydrolib::ring_queue::RingQueue<kTxBufferCapacity> tx_queue_;
@@ -42,11 +58,22 @@ private:
 template <UARTIndex kIndex, int kRxBufferCapacity, int kTxBufferCapacity,
           typename CallbackType>
 requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
+consteval std::tuple<gpio::GPIOPort::RawConfig, gpio::GPIOPort::RawConfig>
+UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity,
+         CallbackType>::Config::GetGPIOConfigs() const
+{
+    return std::make_tuple(UARTLowBase<kIndex>::GetRxGPIOConfig(rx_pin),
+                           UARTLowBase<kIndex>::GetTxGPIOConfig(tx_pin));
+}
+
+template <UARTIndex kIndex, int kRxBufferCapacity, int kTxBufferCapacity,
+          typename CallbackType>
+requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
 class UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity, CallbackType>::UART
 {
 public:
-    UART(UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity, CallbackType>
-             &uart);
+    template <typename T>
+    UART(T &env);
 
     void IRQCallback();
 
@@ -73,23 +100,25 @@ private:
 template <UARTIndex kIndex, int kRxBufferCapacity, int kTxBufferCapacity,
           typename CallbackType>
 requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
-template <typename T>
-UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity, CallbackType>::UARTBase(
-    const T &env, CallbackType rx_callback)
-    : uart_low_(env),
+consteval UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity,
+                   CallbackType>::UARTBase(const Config &config)
+    : uart_low_(config.speed, config.IRQ_priority),
       tx_in_progress_flag_(false),
       status_(hydrolib::ReturnCode::OK),
-      rx_callback_(rx_callback)
+      rx_callback_(config.rx_callback)
 {
 }
 
 template <UARTIndex kIndex, int kRxBufferCapacity, int kTxBufferCapacity,
           typename CallbackType>
 requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
-UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity, CallbackType>::UART::
-    UART(UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity, CallbackType>
-             &uart)
-    : uart_base_(uart), uart_low_handler_(uart.uart_low_)
+template <typename T>
+UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity,
+         CallbackType>::UART::UART(T &env)
+    : uart_base_(
+          env.template GetPeriph<UARTBase<kIndex, kRxBufferCapacity,
+                                          kTxBufferCapacity, CallbackType>>()),
+      uart_low_handler_(uart_base_.uart_low_)
 {
 }
 
