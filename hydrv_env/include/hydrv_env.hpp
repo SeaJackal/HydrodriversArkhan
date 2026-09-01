@@ -145,7 +145,7 @@ template <typename T, std::size_t... kIndexes>
 consteval int
 EnvBase<Ts...>::CalculatePeriphIndex(std::index_sequence<kIndexes...>)
 {
-    return ((std::is_same_v<typename Ts::Handler, T> ? 0 : kIndexes) + ...);
+    return ((std::is_same_v<typename Ts::Handler, T> ? kIndexes : 0) + ...);
 }
 
 }; // namespace hydrv

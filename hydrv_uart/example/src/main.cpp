@@ -1,5 +1,6 @@
 #include "hydrv_clock.hpp"
 #include "hydrv_env.hpp"
+#include "hydrv_gpio_low.hpp"
 #include "hydrv_uart.hpp"
 
 constinit hydrv::EnvBase env_base(
@@ -10,12 +11,20 @@ constinit hydrv::EnvBase env_base(
         .rx_pin = hydrv::uart::UARTLowBase<
             hydrv::uart::UARTIndex::kUSART3>::GPIORx::kB11,
         .tx_pin = hydrv::uart::UARTLowBase<
-            hydrv::uart::UARTIndex::kUSART3>::GPIOTx::kB10});
+            hydrv::uart::UARTIndex::kUSART3>::GPIOTx::kB10,
+        .IRQ_priority = 7},
+    hydrv::gpio::GPIOLow<hydrv::gpio::GPIOPort::Index::kGPIOD, 12>::Config{
+        .output_type = hydrv::gpio::OutputType::kPushPull,
+        .output_speed = hydrv::gpio::OutputSpeed::kLow,
+        .pull_up_down = hydrv::gpio::PullUpDown::kNo});
 
 decltype(env_base)::Env env(env_base);
 
 hydrv::uart::UARTBase<hydrv::uart::UARTIndex::kUSART3, 255, 255>::UART
     uart(env);
+
+hydrv::gpio::GPIOLow<hydrv::gpio::GPIOPort::Index::kGPIOD, 12>::GPIOLowHandler
+    led_pin(env);
 
 constexpr int kBufferSize = 5;
 

@@ -53,6 +53,14 @@
             }
         },
         {
+            "name": "debug_without_tests",
+            "inherits": "debug",
+            "hidden": true,
+            "cacheVariables": {
+                "HYDRV_RUN_TESTS": "OFF"
+            }
+        },
+        {
             "name": "ReleaseF4",
             "inherits": [
                 "F4"
@@ -66,14 +74,14 @@
             "name": "DebugF4",
             "inherits": [
                 "F4",
-                "debug"
+                "debug_without_tests"
             ]
         },
         {
             "name": "DebugF1",
             "inherits": [
                 "F1",
-                "debug"
+                "debug_without_tests"
             ]
         },
         {
