@@ -192,7 +192,7 @@ UARTLowBase<UARTIndex::kUSART3>::GetRxGPIOData(GPIORx rx_pin)
     switch (rx_pin)
     {
     case GPIORx::kB11:
-        return GPIOData{.port = gpio::GPIOPort::Index::kGPIOB, .pin = 10};
+        return GPIOData{.port = gpio::GPIOPort::Index::kGPIOB, .pin = 11};
     case GPIORx::kC11:
         return GPIOData{.port = gpio::GPIOPort::Index::kGPIOC, .pin = 11};
     case GPIORx::kD9:

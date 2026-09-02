@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <ranges>
@@ -13,6 +14,13 @@
 
 namespace hydrv
 {
+
+constexpr void CompileTimeAssert(bool assertion,
+                                 [[maybe_unused]] std::string_view message)
+{
+    [[maybe_unused]] int a = 1 / static_cast<int>(assertion);
+}
+
 template <typename... Ts>
 class EnvBase
 {
@@ -23,6 +31,9 @@ public:
                       Ts... args);
 
 private:
+    static consteval bool
+    IsAllGPIOsUnique(const std::vector<gpio::GPIOPort::RawConfig> &gpios);
+
     template <std::size_t... kIndexes>
     consteval std::array<gpio::GPIOPort, gpio::GPIOPort::kPortsCount>
     CreateGPIOPorts(Ts... args, std::index_sequence<kIndexes...>);
@@ -97,20 +108,39 @@ const auto &EnvBase<Ts...>::Env::GetPeriph() const
 }
 
 template <typename... Ts>
+consteval bool EnvBase<Ts...>::IsAllGPIOsUnique(
+    const std::vector<gpio::GPIOPort::RawConfig> &gpios)
+{
+    for (auto i = gpios.begin(); i != gpios.end(); ++i)
+    {
+        for (auto j = i + 1; j != gpios.end(); ++j)
+        {
+            if (i->pin == j->pin && i->port == j->port)
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+template <typename... Ts>
 template <std::size_t... kIndexes>
 consteval std::array<gpio::GPIOPort, gpio::GPIOPort::kPortsCount>
 EnvBase<Ts...>::CreateGPIOPorts(Ts... args, std::index_sequence<kIndexes...>)
 {
+    auto gpios = ExtractGPIOs(args...);
+    CompileTimeAssert(IsAllGPIOsUnique(gpios), "GPIOs are not unique");
+
     return std::array<gpio::GPIOPort, gpio::GPIOPort::kPortsCount>{
-        gpio::GPIOPort(static_cast<gpio::GPIOPort::Index>(kIndexes),
-                       ExtractGPIOs(args...) |
-                           std::ranges::views::filter(
-                               [](const gpio::GPIOPort::RawConfig &gpio)
-                               {
-                                   return gpio.port ==
-                                          static_cast<gpio::GPIOPort::Index>(
-                                              kIndexes);
-                               }))...};
+        gpio::GPIOPort(
+            static_cast<gpio::GPIOPort::Index>(kIndexes),
+            gpios | std::ranges::views::filter(
+                        [](const gpio::GPIOPort::RawConfig &gpio)
+                        {
+                            return gpio.port ==
+                                   static_cast<gpio::GPIOPort::Index>(kIndexes);
+                        }))...};
 }
 
 template <typename... Ts>
