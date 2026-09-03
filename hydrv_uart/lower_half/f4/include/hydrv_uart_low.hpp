@@ -2,7 +2,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <tuple>
 
 extern "C"
 {
@@ -80,19 +79,27 @@ public:
     static constexpr gpio::GPIOPort::RawConfig GetRxGPIOConfig(GPIORx rx_pin);
     static constexpr gpio::GPIOPort::RawConfig GetTxGPIOConfig(GPIOTx tx_pin);
 
-    consteval UARTLowBase(UARTLowBase<kIndex>::Speed speed, int IRQ_priority);
+    consteval UARTLowBase(UARTLowBase<kIndex>::Speed speed, int irq_priority);
+
+    UARTLowBase(const UARTLowBase &) = delete;
+    UARTLowBase &operator=(const UARTLowBase &) = delete;
+    UARTLowBase &operator=(UARTLowBase &&) = delete;
+
+    UARTLowBase(UARTLowBase &&) = default;
+
+    ~UARTLowBase() = default;
 
 private:
     struct UARTPreset
     {
-        uint32_t USARTx;
+        uint32_t usartx;
 
-        uint32_t RCC_APBENR_UARTxEN;
-        uint32_t RCC_address;
+        uint32_t rcc_apbenr_uartxen;
+        uint32_t rcc_address;
 
-        IRQn_Type USARTx_IRQn;
+        IRQn_Type usartx_irqn;
 
-        gpio::Altfunc GPIO_alt_func;
+        gpio::Altfunc gpio_alt_func;
     };
 
     struct GPIOData
@@ -115,10 +122,14 @@ private:
     static constexpr uint32_t USARTCR2Stop1bit();
 
     int IRQ_priority_;
-
+    // TODO: SeaJackal - need to be made not movable after creating tuple to
+    // store not movable objects
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
+    // Class should be not movable
     const uint32_t cr1_;
     const uint32_t cr2_;
     const uint32_t brr_;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 };
 
 template <>
@@ -139,7 +150,14 @@ template <UARTIndex kIndex>
 class UARTLowBase<kIndex>::UARTLow
 {
 public:
-    UARTLow(UARTLowBase<kIndex> &uart_low_base);
+    explicit UARTLow(UARTLowBase<kIndex> &uart_low_base);
+
+    UARTLow(const UARTLow &) = delete;
+    UARTLow &operator=(const UARTLow &) = delete;
+    UARTLow(UARTLow &&) = delete;
+    UARTLow &operator=(UARTLow &&) = delete;
+
+    ~UARTLow() = default;
 
     bool IsRxDone();
     bool IsTxDone();
@@ -169,7 +187,7 @@ UARTLowBase<kIndex>::GetRxGPIOConfig(GPIORx rx_pin)
             .output_type = gpio::OutputType::kPushPull,
             .output_speed = gpio::OutputSpeed::kVeryHigh,
             .pull_up_down = gpio::PullUpDown::kNo,
-            .altfunc = GetUARTPreset().GPIO_alt_func};
+            .altfunc = GetUARTPreset().gpio_alt_func};
 }
 
 template <UARTIndex kIndex>
@@ -182,13 +200,14 @@ UARTLowBase<kIndex>::GetTxGPIOConfig(GPIOTx tx_pin)
             .output_type = gpio::OutputType::kPushPull,
             .output_speed = gpio::OutputSpeed::kVeryHigh,
             .pull_up_down = gpio::PullUpDown::kNo,
-            .altfunc = GetUARTPreset().GPIO_alt_func};
+            .altfunc = GetUARTPreset().gpio_alt_func};
 }
 
 template <>
 constexpr UARTLowBase<UARTIndex::kUSART3>::GPIOData
 UARTLowBase<UARTIndex::kUSART3>::GetRxGPIOData(GPIORx rx_pin)
 {
+    // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
     switch (rx_pin)
     {
     case GPIORx::kB11:
@@ -201,12 +220,14 @@ UARTLowBase<UARTIndex::kUSART3>::GetRxGPIOData(GPIORx rx_pin)
         hydrolib::CompileTimeAssert(false, "Invalid RX pin");
         return {};
     }
+    // NOLINTEND(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
 }
 
 template <>
 constexpr UARTLowBase<UARTIndex::kUSART3>::GPIOData
 UARTLowBase<UARTIndex::kUSART3>::GetTxGPIOData(GPIOTx tx_pin)
 {
+    // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
     switch (tx_pin)
     {
     case GPIOTx::kB10:
@@ -219,17 +240,18 @@ UARTLowBase<UARTIndex::kUSART3>::GetTxGPIOData(GPIOTx tx_pin)
         hydrolib::CompileTimeAssert(false, "Invalid TX pin");
         return {};
     }
+    // NOLINTEND(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
 }
 
 template <>
 constexpr UARTLowBase<UARTIndex::kUSART3>::UARTPreset
 UARTLowBase<UARTIndex::kUSART3>::GetUARTPreset()
 {
-    return UARTPreset{.USARTx = USART3_BASE,
-                      .RCC_APBENR_UARTxEN = RCC_APB1ENR_USART3EN,
-                      .RCC_address = RCC_BASE + offsetof(RCC_TypeDef, APB1ENR),
-                      .USARTx_IRQn = USART3_IRQn,
-                      .GPIO_alt_func = gpio::Altfunc::kAltfunc7};
+    return UARTPreset{.usartx = USART3_BASE,
+                      .rcc_apbenr_uartxen = RCC_APB1ENR_USART3EN,
+                      .rcc_address = RCC_BASE + offsetof(RCC_TypeDef, APB1ENR),
+                      .usartx_irqn = USART3_IRQn,
+                      .gpio_alt_func = gpio::Altfunc::kAltfunc7};
 }
 
 template <UARTIndex kIndex>
@@ -253,8 +275,10 @@ constexpr uint32_t UARTLowBase<kIndex>::USARTCR2Stop1bit()
 template <UARTIndex kIndex>
 void UARTLowBase<kIndex>::EnableUARTClock(uint32_t rcc_address, uint32_t en_bit)
 {
-    volatile uint32_t *rcc_reg =
-        reinterpret_cast<volatile uint32_t *>(rcc_address);
+    volatile auto *rcc_reg =
+        reinterpret_cast // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,
+        // performance-no-int-to-ptr): Registers access :(
+        <volatile uint32_t *>(rcc_address);
     __IO uint32_t tmpreg = 0x00U;
     SET_BIT(*rcc_reg,
             en_bit); /* Delay after an RCC peripheral clock enabling */
@@ -263,8 +287,8 @@ void UARTLowBase<kIndex>::EnableUARTClock(uint32_t rcc_address, uint32_t en_bit)
 }
 
 template <UARTIndex kIndex>
-consteval UARTLowBase<kIndex>::UARTLowBase(Speed speed, int IRQ_priority)
-    : IRQ_priority_(IRQ_priority),
+consteval UARTLowBase<kIndex>::UARTLowBase(Speed speed, int irq_priority)
+    : IRQ_priority_(irq_priority),
       cr1_(CountCR1Mask()),
       cr2_(CountCR2Mask()),
       brr_(CountBRRMask(speed))
@@ -275,98 +299,139 @@ template <UARTIndex kIndex>
 UARTLowBase<kIndex>::UARTLow::UARTLow(UARTLowBase<kIndex> &uart_low_base)
     : uart_low_base_(uart_low_base)
 {
-    auto preset = uart_low_base_.GetUARTPreset();
-    EnableUARTClock(preset.RCC_address, preset.RCC_APBENR_UARTxEN);
-    NVIC_SetPriority(preset.USARTx_IRQn, uart_low_base_.IRQ_priority_);
-    NVIC_EnableIRQ(preset.USARTx_IRQn);
+    auto preset = GetUARTPreset();
+    EnableUARTClock(preset.rcc_address, preset.rcc_apbenr_uartxen);
+    NVIC_SetPriority(preset.usartx_irqn, uart_low_base_.IRQ_priority_);
+    NVIC_EnableIRQ(preset.usartx_irqn);
 
-    auto USARTx = reinterpret_cast<USART_TypeDef *>(preset.USARTx);
+    auto *usar_tx =
+        reinterpret_cast // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,
+                         // performance-no-int-to-ptr): Registers access :(
+        <USART_TypeDef *>(preset.usartx);
 
-    CLEAR_BIT(USARTx->CR1, USART_CR1_UE);
+    CLEAR_BIT(usar_tx->CR1, USART_CR1_UE);
 
-    USARTx->CR1 = uart_low_base_.cr1_;
-    USARTx->CR2 = uart_low_base_.cr2_;
-    USARTx->BRR = uart_low_base_.brr_;
+    usar_tx->CR1 = uart_low_base_.cr1_;
+    usar_tx->CR2 = uart_low_base_.cr2_;
+    usar_tx->BRR = uart_low_base_.brr_;
 
-    SET_BIT(USARTx->CR1, USART_CR1_UE);
+    SET_BIT(usar_tx->CR1, USART_CR1_UE);
 }
 
 template <UARTIndex kIndex>
 bool UARTLowBase<kIndex>::UARTLow::IsRxDone()
 {
-    auto preset = uart_low_base_.GetUARTPreset();
-    return READ_BIT(reinterpret_cast<USART_TypeDef *>(preset.USARTx)->SR,
-                    USART_SR_RXNE);
+    auto preset = GetUARTPreset();
+    return READ_BIT(
+        reinterpret_cast // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,
+                         // performance-no-int-to-ptr): Registers access :(
+        <USART_TypeDef *>(preset.usartx)
+            ->SR,
+        USART_SR_RXNE);
 }
 
 template <UARTIndex kIndex>
 bool UARTLowBase<kIndex>::UARTLow::IsTxDone()
 {
-    auto preset = uart_low_base_.GetUARTPreset();
-    return READ_BIT(reinterpret_cast<USART_TypeDef *>(preset.USARTx)->SR,
-                    USART_SR_TC);
+    auto preset = GetUARTPreset();
+    return READ_BIT(
+        reinterpret_cast // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,
+                         // performance-no-int-to-ptr): Registers access :(
+        <USART_TypeDef *>(preset.usartx)
+            ->SR,
+        USART_SR_TC);
 }
 
 template <UARTIndex kIndex>
 uint8_t UARTLowBase<kIndex>::UARTLow::GetRx()
 {
-    auto preset = uart_low_base_.GetUARTPreset();
-    return reinterpret_cast<USART_TypeDef *>(preset.USARTx)->DR;
+    auto preset = GetUARTPreset();
+    return reinterpret_cast // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,
+                            // performance-no-int-to-ptr): Registers access :(
+        <USART_TypeDef *>(preset.usartx)
+            ->DR;
 }
 
 template <UARTIndex kIndex>
 void UARTLowBase<kIndex>::UARTLow::SetTx(uint8_t byte)
 {
-    auto preset = uart_low_base_.GetUARTPreset();
-    reinterpret_cast<USART_TypeDef *>(preset.USARTx)->DR = byte;
+    auto preset = GetUARTPreset();
+    reinterpret_cast // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,
+                     // performance-no-int-to-ptr): Registers access :(
+        <USART_TypeDef *>(preset.usartx)
+            ->DR = byte;
 }
 
 template <UARTIndex kIndex>
 void UARTLowBase<kIndex>::UARTLow::EnableTxInterruption()
 {
-    auto preset = uart_low_base_.GetUARTPreset();
-    SET_BIT(reinterpret_cast<USART_TypeDef *>(preset.USARTx)->CR1,
-            USART_CR1_TCIE);
+    auto preset = GetUARTPreset();
+    SET_BIT(
+        reinterpret_cast // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,
+                         // performance-no-int-to-ptr): Registers access :(
+        <USART_TypeDef *>(preset.usartx)
+            ->CR1,
+        USART_CR1_TCIE);
 }
 
 template <UARTIndex kIndex>
 void UARTLowBase<kIndex>::UARTLow::DisableTxInterruption()
 {
-    auto preset = uart_low_base_.GetUARTPreset();
-    CLEAR_BIT(reinterpret_cast<USART_TypeDef *>(preset.USARTx)->CR1,
-              USART_CR1_TCIE);
+    auto preset = GetUARTPreset();
+    CLEAR_BIT(
+        reinterpret_cast // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,
+                         // performance-no-int-to-ptr): Registers access :(
+        <USART_TypeDef *>(preset.usartx)
+            ->CR1,
+        USART_CR1_TCIE);
 }
 
 template <UARTIndex kIndex>
 void UARTLowBase<kIndex>::UARTLow::EnableRxInterruption()
 {
-    auto preset = uart_low_base_.GetUARTPreset();
-    SET_BIT(reinterpret_cast<USART_TypeDef *>(preset.USARTx)->CR1,
-            USART_CR1_RXNEIE);
+    auto preset = GetUARTPreset();
+    SET_BIT(
+        reinterpret_cast // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,
+                         // performance-no-int-to-ptr): Registers access :(
+        <USART_TypeDef *>(preset.usartx)
+            ->CR1,
+        USART_CR1_RXNEIE);
 }
 
 template <UARTIndex kIndex>
 void UARTLowBase<kIndex>::UARTLow::DisableRxInterruption()
 {
-    auto preset = uart_low_base_.GetUARTPreset();
-    CLEAR_BIT(reinterpret_cast<USART_TypeDef *>(preset.USARTx)->CR1,
-              USART_CR1_RXNEIE);
+    auto preset = GetUARTPreset();
+    CLEAR_BIT(
+        reinterpret_cast // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,
+                         // performance-no-int-to-ptr): Registers access :(
+        <USART_TypeDef *>(preset.usartx)
+            ->CR1,
+        USART_CR1_RXNEIE);
 }
 
 template <UARTIndex kIndex>
 void UARTLowBase<kIndex>::UARTLow::EnableDMATransmit()
 {
-    auto preset = uart_low_base_.GetUARTPreset();
-    SET_BIT(reinterpret_cast<USART_TypeDef *>(preset.USARTx)->CR3,
-            USART_CR3_DMAT);
+    auto preset = GetUARTPreset();
+    SET_BIT(
+        reinterpret_cast // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,
+                         // performance-no-int-to-ptr): Registers access :(
+        <USART_TypeDef *>(preset.usartx)
+            ->CR3,
+        USART_CR3_DMAT);
 }
 
 template <UARTIndex kIndex>
 void UARTLowBase<kIndex>::UARTLow::EnableDMAReceive()
 {
-    auto preset = uart_low_base_.GetUARTPreset();
-    SET_BIT(reinterpret_cast<USART_TypeDef *>(preset.USARTx)->CR3,
-            USART_CR3_DMAR);
+    auto preset = GetUARTPreset();
+    SET_BIT(
+        reinterpret_cast // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,
+                         // performance-no-int-to-ptr): Registers access :(
+        <USART_TypeDef *>(preset.usartx)
+            ->CR3,
+        USART_CR3_DMAR);
 }
 
 template <UARTIndex kIndex>
@@ -400,8 +465,10 @@ constexpr uint32_t UARTLowBase<UARTIndex::kUSART3>::CountBRRMask(Speed speed)
     switch (speed)
     {
     case Speed::k115200:
+        // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
         mantissa = 22;
         fraction = 13;
+        // NOLINTEND(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
         break;
     default:
         hydrolib::CompileTimeAssert(false, "Invalid speed");

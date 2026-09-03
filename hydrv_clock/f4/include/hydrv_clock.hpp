@@ -39,9 +39,9 @@ public:
     static_assert(kTemplateSysclkFreqMhz == kMaxSysclkFreqMhz,
                   "Sysclk frequency not supported, only supported frequency - "
                   "kMaxSysclkFreqMhz");
-    static_assert(
-        kHSEFreqMhz == 0 || kHSEFreqMhz == 8,
-        "HSE frequency not supported, only supported frequency - 8 Mhz");
+    static_assert(kHSEFreqMhz == 0 || kHSEFreqMhz == 8, // NOLINT
+                  "HSE frequency not supported, only supported frequency - 8 "
+                  "Mhz"); // TODO: SeaJackal - Add pll config counter
 
     static constexpr int kSysclkFreqMhz = kTemplateSysclkFreqMhz;
     static constexpr int kAPB1FreqMhz = CalculateAPB1();
@@ -58,7 +58,7 @@ public:
     static bool IsSysTickFailed();
 
 private:
-    enum PLLsource
+    enum class PLLsource : uint32_t
     {
         kHSE = RCC_PLLCFGR_PLLSRC_HSE,
         kHSI = RCC_PLLCFGR_PLLSRC_HSI
@@ -66,7 +66,7 @@ private:
 
     struct ClockPreset
     {
-        enum PLLsource source;
+        PLLsource source;
         uint32_t m;
         uint32_t n;
         uint32_t p;
@@ -116,7 +116,8 @@ private:
 template <int kTemplateSysclkFreqMhz, int kHSEFreqMhz>
 constexpr int Clock<kTemplateSysclkFreqMhz, kHSEFreqMhz>::MhzToKhz(int freq)
 {
-    return freq * 1000;
+    return freq * 1000; // NOLINT
+    // TODO: SeaJackal - Use special types for freqs (see chrono)
 }
 
 template <int kTemplateSysclkFreqMhz, int kHSEFreqMhz>
@@ -171,9 +172,9 @@ inline unsigned ClockBase::GetSystemTime() { return systick_counter; }
 
 inline void ClockBase::Delay(int time_ms)
 {
-    uint32_t start_counter = GetSystemTime();
-    uint32_t current_counter = GetSystemTime();
-    while (current_counter - start_counter < time_ms)
+    auto start_counter = GetSystemTime();
+    auto current_counter = GetSystemTime();
+    while (current_counter - start_counter < static_cast<unsigned>(time_ms))
     {
         current_counter = GetSystemTime();
     }
@@ -215,23 +216,25 @@ Clock<kTemplateSysclkFreqMhz, kHSEFreqMhz>::GetClockPreset()
 {
     if constexpr (kHSEFreqMhz != 0)
     {
-        return {
-            .source = kHSI,
+        constexpr ClockPreset kHSIPreset{
+            .source = PLLsource::kHSI,
             .m = 8,
             .n = 168,
             .p = 2,
             .frequency_hse_mhz = 0,
         };
+        return kHSIPreset;
     }
     else
     {
-        return {
-            .source = kHSE,
+        constexpr ClockPreset kHSEPreset{
+            .source = PLLsource::kHSE,
             .m = 4,
             .n = 168,
             .p = 2,
             .frequency_hse_mhz = 8,
         };
+        return kHSEPreset;
     }
 }
 
@@ -341,7 +344,8 @@ Clock<kTemplateSysclkFreqMhz, kHSEFreqMhz>::CalculatePLLCFGRRegValue(
     const ClockPreset &preset)
 {
     uint32_t result = kPLLCFGRRegDefaultValue;
-    MODIFY_REG(result, RCC_PLLCFGR_PLLSRC, preset.source);
+    MODIFY_REG(result, RCC_PLLCFGR_PLLSRC,
+               static_cast<uint32_t>(preset.source));
     MODIFY_REG(result, RCC_PLLCFGR_PLLM, preset.m << RCC_PLLCFGR_PLLM_Pos);
     MODIFY_REG(result, RCC_PLLCFGR_PLLN, preset.n << RCC_PLLCFGR_PLLN_Pos);
     MODIFY_REG(result, RCC_PLLCFGR_PLLP,

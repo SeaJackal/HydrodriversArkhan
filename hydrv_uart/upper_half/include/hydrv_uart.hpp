@@ -5,6 +5,7 @@
 #include <cstring>
 #include <optional>
 #include <span>
+#include <tuple>
 
 #include "hydrolib_func_concepts.hpp"
 #include "hydrolib_return_codes.hpp"
@@ -29,19 +30,23 @@ public:
 
         static constexpr int kGPIOCount = 2;
 
+        // NOLINTBEGIN(misc-non-private-member-variables-in-classes)
+        // Struct with no invariants
         UARTLowBase<kIndex>::Speed speed;
         UARTLowBase<kIndex>::GPIORx rx_pin;
         UARTLowBase<kIndex>::GPIOTx tx_pin;
-        int IRQ_priority;
+        int irq_priority = 7; // NOLINT(cppcoreguidelines-avoid-magic-numbers,
+        //  readability-magic-numbers)
 
         CallbackType rx_callback = hydrolib::concepts::func::DummyFunc<void>;
+        // NOLINTEND(misc-non-private-member-variables-in-classes)
 
-        consteval std::tuple<gpio::GPIOPort::RawConfig,
+        [[nodiscard]] consteval std::tuple<gpio::GPIOPort::RawConfig,
                              gpio::GPIOPort::RawConfig>
         GetGPIOConfigs() const;
     };
 
-    consteval UARTBase(const Config &config);
+    consteval explicit UARTBase(const Config &config);
 
 private:
     UARTLowBase<kIndex> uart_low_;
@@ -49,9 +54,9 @@ private:
     hydrolib::ring_queue::RingQueue<kRxBufferCapacity> rx_queue_;
     hydrolib::ring_queue::RingQueue<kTxBufferCapacity> tx_queue_;
 
-    bool tx_in_progress_flag_;
+    bool tx_in_progress_flag_ = false;
 
-    hydrolib::ReturnCode status_;
+    hydrolib::ReturnCode status_ = hydrolib::ReturnCode::kOk;
 
     CallbackType rx_callback_;
 };
@@ -74,7 +79,15 @@ class UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity, CallbackType>::UART
 {
 public:
     template <typename T>
-    UART(T &env);
+    explicit UART(T &env);
+
+    UART(const UART &) = delete;
+    UART &operator=(const UART &) = delete;
+    UART &operator=(UART &&) = delete;
+
+    UART(UART &&) = default;
+
+    ~UART() = default;
 
     void IRQCallback();
 
@@ -83,19 +96,24 @@ public:
     int Read(std::span<std::byte> data);
     void ClearRx();
 
-    int GetRxLength() const;
-    int GetTxLength() const;
+    [[nodiscard]] int GetRxLength() const;
+    [[nodiscard]] int GetTxLength() const;
 
 protected:
-    bool IsTransmiting() const;
+    [[nodiscard]] bool IsTransmiting() const;
 
     std::optional<uint8_t> ProcessRx();
     std::optional<uint8_t> ProcessTx();
 
 private:
+    // TODO: SeaJackal - need to be made not movable after creating tuple to
+    // store not movable objects
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
+    // Class should be not movable
     UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity, CallbackType>
         &uart_base_;
     UARTLowBase<kIndex>::UARTLow uart_low_handler_;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 };
 
 template <UARTIndex kIndex, int kRxBufferCapacity, int kTxBufferCapacity,
@@ -103,9 +121,7 @@ template <UARTIndex kIndex, int kRxBufferCapacity, int kTxBufferCapacity,
 requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
 consteval UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity,
                    CallbackType>::UARTBase(const Config &config)
-    : uart_low_(config.speed, config.IRQ_priority),
-      tx_in_progress_flag_(false),
-      status_(hydrolib::ReturnCode::kOk),
+    : uart_low_(config.speed, config.irq_priority),
       rx_callback_(config.rx_callback)
 {
 }
@@ -150,7 +166,7 @@ int UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity,
 {
     uart_base_.tx_in_progress_flag_ = true;
     int length = GetTxLength();
-    auto data_length = data.size();
+    int data_length = static_cast<int>(data.size());
     if (length + data_length > kTxBufferCapacity)
     {
         data_length = kTxBufferCapacity - length;
@@ -219,11 +235,11 @@ std::optional<uint8_t> UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity,
         return std::nullopt;
     }
 
-    uint8_t rx = uart_low_handler_.GetRx();
-    uart_base_.rx_queue_.PushByte(rx);
+    uint8_t rx_data = uart_low_handler_.GetRx();
+    uart_base_.rx_queue_.PushByte(rx_data);
 
     uart_base_.rx_callback_();
-    return rx;
+    return rx_data;
 }
 
 template <UARTIndex kIndex, int kRxBufferCapacity, int kTxBufferCapacity,
@@ -244,10 +260,10 @@ std::optional<uint8_t> UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity,
         return std::nullopt;
     }
 
-    uint8_t tx = 0;
-    uart_base_.tx_queue_.PullByte(&tx);
-    uart_low_handler_.SetTx(tx);
-    return tx;
+    uint8_t tx_data = 0;
+    uart_base_.tx_queue_.PullByte(&tx_data);
+    uart_low_handler_.SetTx(tx_data);
+    return tx_data;
 }
 
 } // namespace hydrv::uart

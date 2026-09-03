@@ -1,0 +1,134 @@
+/usr/local/bin/../include/c++/v1/__config:13:10: error: '__config_site' file not found [clang-diagnostic-error]
+   13 | #include <__config_site>
+      |          ^~~~~~~~~~~~~~~
+/workspaces/HydrodriversArkhan/.deps/hydrolib-src/hydrolib_ring_queue/include/hydrolib_ring_queue.hpp:11:15: warning: invalid case style for value template parameter 'CAPACITY' [readability-identifier-naming]
+   11 | template <int CAPACITY>
+      |               ^~~~~~~~
+      |               kCapacity
+/workspaces/HydrodriversArkhan/.deps/hydrolib-src/hydrolib_ring_queue/include/hydrolib_ring_queue.hpp:40:15: warning: invalid case style for value template parameter 'CAPACITY' [readability-identifier-naming]
+   40 | template <int CAPACITY>
+      |               ^~~~~~~~
+      |               kCapacity
+   41 | inline void RingQueue<CAPACITY>::Clear() {
+      |                       ~~~~~~~~
+      |                       kCapacity
+/workspaces/HydrodriversArkhan/.deps/hydrolib-src/hydrolib_ring_queue/include/hydrolib_ring_queue.hpp:45:15: warning: invalid case style for value template parameter 'CAPACITY' [readability-identifier-naming]
+   45 | template <int CAPACITY>
+      |               ^~~~~~~~
+      |               kCapacity
+   46 | inline ReturnCode RingQueue<CAPACITY>::Drop(int number) {
+      |                             ~~~~~~~~
+      |                             kCapacity
+   47 |   if (number > GetLength()) {
+   48 |     return ReturnCode::kFail;
+   49 |   }
+   50 |   head_ = (head_ + number) % CAPACITY;
+      |                              ~~~~~~~~
+      |                              kCapacity
+/workspaces/HydrodriversArkhan/.deps/hydrolib-src/hydrolib_ring_queue/include/hydrolib_ring_queue.hpp:54:15: warning: invalid case style for value template parameter 'CAPACITY' [readability-identifier-naming]
+   54 | template <int CAPACITY>
+      |               ^~~~~~~~
+      |               kCapacity
+   55 | inline ReturnCode RingQueue<CAPACITY>::PushByte(uint8_t byte) {
+      |                             ~~~~~~~~
+      |                             kCapacity
+/workspaces/HydrodriversArkhan/.deps/hydrolib-src/hydrolib_ring_queue/include/hydrolib_ring_queue.hpp:66:15: warning: invalid case style for value template parameter 'CAPACITY' [readability-identifier-naming]
+   66 | template <int CAPACITY>
+      |               ^~~~~~~~
+      |               kCapacity
+   67 | inline ReturnCode RingQueue<CAPACITY>::Push(const void *data, int data_length) {
+      |                             ~~~~~~~~
+      |                             kCapacity
+   68 |   if (GetLength() + data_length > CAPACITY) {
+      |                                   ~~~~~~~~
+      |                                   kCapacity
+/workspaces/HydrodriversArkhan/.deps/hydrolib-src/hydrolib_ring_queue/include/hydrolib_ring_queue.hpp:86:15: warning: invalid case style for value template parameter 'CAPACITY' [readability-identifier-naming]
+   86 | template <int CAPACITY>
+      |               ^~~~~~~~
+      |               kCapacity
+   87 | inline ReturnCode RingQueue<CAPACITY>::PullByte(uint8_t *byte) {
+      |                             ~~~~~~~~
+      |                             kCapacity
+/workspaces/HydrodriversArkhan/.deps/hydrolib-src/hydrolib_ring_queue/include/hydrolib_ring_queue.hpp:98:15: warning: invalid case style for value template parameter 'CAPACITY' [readability-identifier-naming]
+   98 | template <int CAPACITY>
+      |               ^~~~~~~~
+      |               kCapacity
+   99 | inline ReturnCode RingQueue<CAPACITY>::Pull(void *data, int data_length) {
+      |                             ~~~~~~~~
+      |                             kCapacity
+/workspaces/HydrodriversArkhan/.deps/hydrolib-src/hydrolib_ring_queue/include/hydrolib_ring_queue.hpp:117:15: warning: invalid case style for value template parameter 'CAPACITY' [readability-identifier-naming]
+  117 | template <int CAPACITY>
+      |               ^~~~~~~~
+      |               kCapacity
+  118 | inline ReturnCode RingQueue<CAPACITY>::Read(void *data, int data_length,
+      |                             ~~~~~~~~
+      |                             kCapacity
+/workspaces/HydrodriversArkhan/.deps/hydrolib-src/hydrolib_ring_queue/include/hydrolib_ring_queue.hpp:138:15: warning: invalid case style for value template parameter 'CAPACITY' [readability-identifier-naming]
+  138 | template <int CAPACITY>
+      |               ^~~~~~~~
+      |               kCapacity
+  139 | inline uint8_t &RingQueue<CAPACITY>::operator[](int index) {
+      |                           ~~~~~~~~
+      |                           kCapacity
+/workspaces/HydrodriversArkhan/.deps/hydrolib-src/hydrolib_ring_queue/include/hydrolib_ring_queue.hpp:143:15: warning: invalid case style for value template parameter 'CAPACITY' [readability-identifier-naming]
+  143 | template <int CAPACITY>
+      |               ^~~~~~~~
+      |               kCapacity
+  144 | inline const uint8_t &RingQueue<CAPACITY>::operator[](int index) const {
+      |                                 ~~~~~~~~
+      |                                 kCapacity
+/workspaces/HydrodriversArkhan/.deps/hydrolib-src/hydrolib_ring_queue/include/hydrolib_ring_queue.hpp:148:15: warning: invalid case style for value template parameter 'CAPACITY' [readability-identifier-naming]
+  148 | template <int CAPACITY>
+      |               ^~~~~~~~
+      |               kCapacity
+  149 | inline int RingQueue<CAPACITY>::GetLength() const {
+      |                      ~~~~~~~~
+      |                      kCapacity
+/workspaces/HydrodriversArkhan/.deps/hydrolib-src/hydrolib_ring_queue/include/hydrolib_ring_queue.hpp:153:12: warning: narrowing conversion from 'unsigned int' to signed type 'int' is implementation-defined [bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions]
+  153 |     return tail - head;
+      |            ^
+/workspaces/HydrodriversArkhan/.deps/hydrolib-src/hydrolib_ring_queue/include/hydrolib_ring_queue.hpp:158:15: warning: invalid case style for value template parameter 'CAPACITY' [readability-identifier-naming]
+  158 | template <int CAPACITY>
+      |               ^~~~~~~~
+      |               kCapacity
+  159 | inline int RingQueue<CAPACITY>::GetCapacity() const {
+      |                      ~~~~~~~~
+      |                      kCapacity
+  160 |   return CAPACITY;
+      |          ~~~~~~~~
+      |          kCapacity
+/workspaces/HydrodriversArkhan/.deps/hydrolib-src/hydrolib_ring_queue/include/hydrolib_ring_queue.hpp:163:15: warning: invalid case style for value template parameter 'CAPACITY' [readability-identifier-naming]
+  163 | template <int CAPACITY>
+      |               ^~~~~~~~
+      |               kCapacity
+  164 | inline bool RingQueue<CAPACITY>::IsEmpty() const {
+      |                       ~~~~~~~~
+      |                       kCapacity
+/workspaces/HydrodriversArkhan/.deps/hydrolib-src/hydrolib_ring_queue/include/hydrolib_ring_queue.hpp:168:15: warning: invalid case style for value template parameter 'CAPACITY' [readability-identifier-naming]
+  168 | template <int CAPACITY>
+      |               ^~~~~~~~
+      |               kCapacity
+  169 | inline bool RingQueue<CAPACITY>::IsFull() const {
+      |                       ~~~~~~~~
+      |                       kCapacity
+/workspaces/HydrodriversArkhan/hydrv_uart/example/src/main.cpp:1:1: warning: included header hydrv_clock.hpp is not used directly [misc-include-cleaner]
+    1 | #include "hydrv_clock.hpp"
+      | ^~~~~~~~~~~~~~~~~~~~~~~~~~
+    2 | #include "hydrv_env.hpp"
+/workspaces/HydrodriversArkhan/hydrv_uart/example/src/main.cpp:2:1: warning: included header hydrv_env.hpp is not used directly [misc-include-cleaner]
+    2 | #include "hydrv_env.hpp"
+      | ^~~~~~~~~~~~~~~~~~~~~~~~
+    3 | #include "hydrv_env_base.hpp"
+/workspaces/HydrodriversArkhan/hydrv_uart/example/src/main.cpp:6:1: warning: included header hydrv_uart.hpp is not used directly [misc-include-cleaner]
+    6 | #include "hydrv_uart.hpp"
+      | ^~~~~~~~~~~~~~~~~~~~~~~~~
+    7 | 
+/workspaces/HydrodriversArkhan/hydrv_uart/lower_half/f4/include/hydrv_uart_low.hpp:276:43: warning: 2 adjacent parameters of 'EnableUARTClock' of similar type ('uint32_t') are easily swapped by mistake [bugprone-easily-swappable-parameters]
+  276 | void UARTLowBase<kIndex>::EnableUARTClock(uint32_t rcc_address, uint32_t en_bit)
+      |                                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspaces/HydrodriversArkhan/hydrv_uart/lower_half/f4/include/hydrv_uart_low.hpp:276:52: note: the first parameter in the range is 'rcc_address'
+  276 | void UARTLowBase<kIndex>::EnableUARTClock(uint32_t rcc_address, uint32_t en_bit)
+      |                                                    ^~~~~~~~~~~
+/workspaces/HydrodriversArkhan/hydrv_uart/lower_half/f4/include/hydrv_uart_low.hpp:276:74: note: the last parameter in the range is 'en_bit'
+  276 | void UARTLowBase<kIndex>::EnableUARTClock(uint32_t rcc_address, uint32_t en_bit)
+      |                                                                          ^~~~~~
