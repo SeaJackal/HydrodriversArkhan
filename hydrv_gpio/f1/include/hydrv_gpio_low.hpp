@@ -11,7 +11,7 @@ class GPIOPort::GPIOLow
 public:
     class GPIOLowHandler;
 
-    consteval GPIOLow(const GPIOPort &GPIO_port, int pin, int altfunc);
+    consteval GPIOLow(const GPIOPort &gpio_port, int pin, int altfunc);
 
 private:
     const GPIOPort &GPIO_port_;
@@ -19,7 +19,6 @@ private:
     const uint32_t set_reg_mask_;
     const uint32_t reset_reg_mask_;
 
-private:
     static consteval uint32_t CalculateSetRegValue(int pin);
     static consteval uint32_t CalculateResetRegValue(int pin);
 };

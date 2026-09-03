@@ -198,7 +198,8 @@ UARTLowBase<UARTIndex::kUSART3>::GetRxGPIOData(GPIORx rx_pin)
     case GPIORx::kD9:
         return GPIOData{.port = gpio::GPIOPort::Index::kGPIOD, .pin = 9};
     default:
-        int a = 1 / 0;
+        hydrolib::CompileTimeAssert(false, "Invalid RX pin");
+        return {};
     }
 }
 
@@ -215,7 +216,8 @@ UARTLowBase<UARTIndex::kUSART3>::GetTxGPIOData(GPIOTx tx_pin)
     case GPIOTx::kD8:
         return GPIOData{.port = gpio::GPIOPort::Index::kGPIOD, .pin = 8};
     default:
-        int a = 1 / 0;
+        hydrolib::CompileTimeAssert(false, "Invalid TX pin");
+        return {};
     }
 }
 
@@ -402,7 +404,8 @@ constexpr uint32_t UARTLowBase<UARTIndex::kUSART3>::CountBRRMask(Speed speed)
         fraction = 13;
         break;
     default:
-        int a = 1 / 0;
+        hydrolib::CompileTimeAssert(false, "Invalid speed");
+        return 0;
     }
 
     uint32_t brr = 0;

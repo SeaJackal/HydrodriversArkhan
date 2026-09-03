@@ -32,8 +32,6 @@ std::array<std::byte, kBufferSize> buffer;
 
 int main(void)
 {
-    NVIC_SetPriorityGrouping(0);
-
     while (1)
     {
         unsigned rx_length = uart.GetRxLength();

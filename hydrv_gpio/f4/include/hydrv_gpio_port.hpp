@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#include "hydrolib_return_codes.hpp"
+
 extern "C"
 {
 #include "stm32f4xx.h"
@@ -66,13 +68,13 @@ enum class Altfunc : uint32_t
 class GPIOPort
 {
 public:
-    enum Index
+    enum class Index
     {
         kGPIOA = 0,
         kGPIOB,
         kGPIOC,
         kGPIOD,
-        kPortsCount
+        kPortCount
     };
 
     struct RawConfig
@@ -85,6 +87,8 @@ public:
         PullUpDown pull_up_down;
         Altfunc altfunc;
     };
+
+    static constexpr int kPortCount = static_cast<int>(Index::kPortCount);
 
     // static constexpr GPIOConfig kOutput = {.pin_function =
     // GPIOFunc::kOutput}; static constexpr GPIOConfig kFastOutput =
@@ -107,8 +111,8 @@ public:
 private:
     struct PortInfo
     {
-        uint32_t GPIOx;
-        uint32_t RCC_AHB1ENR_GPIOxEN;
+        uint32_t gpiox;
+        uint32_t rcc_ahb1enr_gpioxen;
     };
 
     struct AltfuncReg
@@ -117,8 +121,17 @@ private:
         uint32_t low;
     };
 
+    static constexpr uint32_t kGPIOAModeRegDefaultValue = 0xA8000000;
+    static constexpr uint32_t kGPIOBModeRegDefaultValue = 0x00000280;
+    static constexpr uint32_t kGPIOAOutputSpeedRegDefaultValue = 0x0C000000;
+    static constexpr uint32_t kGPIOBOutputSpeedRegDefaultValue = 0x000000C0;
+    static constexpr uint32_t kGPIOAPullUpDownRegDefaultValue = 0x64000000;
+    static constexpr uint32_t kGPIOBPullUpDownRegDefaultValue = 0x00000100;
+
+    static constexpr int kNumberOfPinsInAltfuncLowReg = 8;
+
     static consteval PortInfo GetPortInfo(Index port);
-    static consteval uint32_t GetRCC_AHB1ENR_GPIOxEN(Index port);
+    static consteval uint32_t GetRCCAHB1ENRGPIOxEN(Index port);
 
     template <typename T>
     consteval uint32_t CalculateModeRegValue(T &pins);
@@ -137,7 +150,7 @@ private:
     static constexpr uint32_t GetPullUpDownRegMask(PullUpDown value, int pin);
     static constexpr uint32_t GetAltfuncRegMask(Altfunc value, int pin);
 
-    static void EnableGPIOxClock(uint32_t RCC_AHB1ENR_GPIOxEN);
+    static void EnableGPIOxClock(uint32_t rcc_ahb1enr_gpioxen);
 
     uint32_t RCC_AHB1ENR_GPIOxEN_ = 0;
     uint32_t GPIOx_ = 0;
@@ -152,7 +165,7 @@ private:
 
 template <typename T>
 consteval GPIOPort::GPIOPort(Index port, T pins)
-    : RCC_AHB1ENR_GPIOxEN_(GetRCC_AHB1ENR_GPIOxEN(port)),
+    : RCC_AHB1ENR_GPIOxEN_(GetRCCAHB1ENRGPIOxEN(port)),
       GPIOx_(GetGPIOx(port)),
       mode_reg_value_(CalculateModeRegValue(pins)),
       output_type_reg_value_(CalculateOutputTypeRegValue(pins)),
@@ -166,46 +179,49 @@ inline void GPIOPort::Init() const
 {
     EnableGPIOxClock(RCC_AHB1ENR_GPIOxEN_);
 
-    auto GPIOx = reinterpret_cast<GPIO_TypeDef *>(GPIOx_);
+    auto *gpiox =
+        reinterpret_cast // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,
+        // performance-no-int-to-ptr): Registers access :(
+        <GPIO_TypeDef *>(GPIOx_);
 
-    GPIOx->MODER = mode_reg_value_;
-    GPIOx->OTYPER = output_type_reg_value_;
-    GPIOx->OSPEEDR = output_speed_reg_value_;
-    GPIOx->PUPDR = pull_up_down_reg_value_;
-    GPIOx->AFR[0] = altfunc_reg_value_.low;
-    GPIOx->AFR[1] = altfunc_reg_value_.high;
+    gpiox->MODER = mode_reg_value_;
+    gpiox->OTYPER = output_type_reg_value_;
+    gpiox->OSPEEDR = output_speed_reg_value_;
+    gpiox->PUPDR = pull_up_down_reg_value_;
+    gpiox->AFR[0] = altfunc_reg_value_.low;
+    gpiox->AFR[1] = altfunc_reg_value_.high;
 }
 
 consteval GPIOPort::PortInfo GPIOPort::GetPortInfo(Index port)
 {
     switch (port)
     {
-    case kGPIOA:
-        return {.GPIOx = GPIOA_BASE,
-                .RCC_AHB1ENR_GPIOxEN = RCC_AHB1ENR_GPIOAEN};
-    case kGPIOB:
-        return {.GPIOx = GPIOB_BASE,
-                .RCC_AHB1ENR_GPIOxEN = RCC_AHB1ENR_GPIOBEN};
-    case kGPIOC:
-        return {.GPIOx = GPIOC_BASE,
-                .RCC_AHB1ENR_GPIOxEN = RCC_AHB1ENR_GPIOCEN};
-    case kGPIOD:
-        return {.GPIOx = GPIOD_BASE,
-                .RCC_AHB1ENR_GPIOxEN = RCC_AHB1ENR_GPIODEN};
+    case Index::kGPIOA:
+        return {.gpiox = GPIOA_BASE,
+                .rcc_ahb1enr_gpioxen = RCC_AHB1ENR_GPIOAEN};
+    case Index::kGPIOB:
+        return {.gpiox = GPIOB_BASE,
+                .rcc_ahb1enr_gpioxen = RCC_AHB1ENR_GPIOBEN};
+    case Index::kGPIOC:
+        return {.gpiox = GPIOC_BASE,
+                .rcc_ahb1enr_gpioxen = RCC_AHB1ENR_GPIOCEN};
+    case Index::kGPIOD:
+        return {.gpiox = GPIOD_BASE,
+                .rcc_ahb1enr_gpioxen = RCC_AHB1ENR_GPIODEN};
     default:
-        int a = 1 / 0;
-        break;
+        hydrolib::CompileTimeAssert(false, "Invalid port");
+        return {};
     }
 }
 
 consteval uint32_t GPIOPort::GetGPIOx(Index port)
 {
-    return GetPortInfo(port).GPIOx;
+    return GetPortInfo(port).gpiox;
 }
 
-consteval uint32_t GPIOPort::GetRCC_AHB1ENR_GPIOxEN(Index port)
+consteval uint32_t GPIOPort::GetRCCAHB1ENRGPIOxEN(Index port)
 {
-    return GetPortInfo(port).RCC_AHB1ENR_GPIOxEN;
+    return GetPortInfo(port).rcc_ahb1enr_gpioxen;
 }
 
 template <typename T>
@@ -214,11 +230,11 @@ consteval uint32_t GPIOPort::CalculateModeRegValue(T &pins)
     uint32_t result = 0;
     if (GPIOx_ == GPIOA_BASE)
     {
-        result = 0xA8000000;
+        result = kGPIOAModeRegDefaultValue;
     }
     else if (GPIOx_ == GPIOB_BASE)
     {
-        result = 0x00000280;
+        result = kGPIOBModeRegDefaultValue;
     }
 
     for (const auto &pin : pins)
@@ -287,11 +303,11 @@ consteval uint32_t GPIOPort::CalculateOutputSpeedRegValue(T &pins)
     uint32_t result = 0;
     if (GPIOx_ == GPIOA_BASE)
     {
-        result = 0x0C000000;
+        result = kGPIOAOutputSpeedRegDefaultValue;
     }
     else if (GPIOx_ == GPIOB_BASE)
     {
-        result = 0x000000C0;
+        result = kGPIOBOutputSpeedRegDefaultValue;
     }
 
     for (const auto &pin : pins)
@@ -329,11 +345,11 @@ consteval uint32_t GPIOPort::CalculatePullUpDownRegValue(T &pins)
     uint32_t result = 0;
     if (GPIOx_ == GPIOA_BASE)
     {
-        result = 0x64000000;
+        result = kGPIOAPullUpDownRegDefaultValue;
     }
     else if (GPIOx_ == GPIOB_BASE)
     {
-        result = 0x00000100;
+        result = kGPIOBPullUpDownRegDefaultValue;
     }
 
     for (const auto &pin : pins)
@@ -371,7 +387,7 @@ consteval GPIOPort::AltfuncReg GPIOPort::CalculateAltfuncRegValue(T &pins)
     AltfuncReg result = {.high = 0, .low = 0};
     for (const auto &pin : pins)
     {
-        if (pin.pin < 8)
+        if (pin.pin < kNumberOfPinsInAltfuncLowReg)
         {
             MODIFY_REG(result.low, GetAltfuncRegMask(Altfunc::kMask, pin.pin),
                        GetAltfuncRegMask(pin.altfunc, pin.pin));
@@ -407,15 +423,16 @@ constexpr uint32_t GPIOPort::GetPullUpDownRegMask(PullUpDown value, int pin)
 
 constexpr uint32_t GPIOPort::GetAltfuncRegMask(Altfunc value, int pin)
 {
-    return static_cast<uint32_t>(value) << (4 * (pin % 8));
+    return static_cast<uint32_t>(value)
+           << (4 * (pin % kNumberOfPinsInAltfuncLowReg));
 }
 
-inline void GPIOPort::EnableGPIOxClock(uint32_t RCC_AHB1ENR_GPIOxEN)
+inline void GPIOPort::EnableGPIOxClock(uint32_t rcc_ahb1enr_gpioxen)
 {
     __IO uint32_t tmpreg = 0x00U;
-    SET_BIT(RCC->AHB1ENR, RCC_AHB1ENR_GPIOxEN); /* Delay after an RCC peripheral
+    SET_BIT(RCC->AHB1ENR, rcc_ahb1enr_gpioxen); /* Delay after an RCC peripheral
                                                    clock enabling */
-    tmpreg = READ_BIT(RCC->AHB1ENR, RCC_AHB1ENR_GPIOxEN);
+    tmpreg = READ_BIT(RCC->AHB1ENR, rcc_ahb1enr_gpioxen);
     (void)tmpreg;
 }
 } // namespace hydrv::gpio

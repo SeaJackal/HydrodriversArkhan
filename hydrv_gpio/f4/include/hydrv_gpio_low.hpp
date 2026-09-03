@@ -16,11 +16,14 @@ public:
 
         static constexpr int kGPIOCount = 1;
 
+        // NOLINTBEGIN(misc-non-private-member-variables-in-classes)
+        // Struct with no invariants
         OutputType output_type;
         OutputSpeed output_speed;
         PullUpDown pull_up_down;
+        // NOLINTEND(misc-non-private-member-variables-in-classes)
 
-        consteval GPIOPort::RawConfig GetGPIOConfigs() const
+        [[nodiscard]] consteval GPIOPort::RawConfig GetGPIOConfigs() const
         {
             return GPIOPort::RawConfig{.pin = kPin,
                                        .port = kPort,
@@ -34,13 +37,26 @@ public:
 
     class GPIOLowHandler;
 
-    consteval GPIOLow(const Config &config);
+    explicit consteval GPIOLow(const Config &config);
+
+    GPIOLow(const GPIOLow &) = delete;
+    GPIOLow &operator=(const GPIOLow &) = delete;
+    GPIOLow &operator=(GPIOLow &&) = delete;
+
+    GPIOLow(GPIOLow &&) = default;
+
+    ~GPIOLow() = default;
 
 private:
-    const uint32_t GPIOx_;
+    // TODO: SeaJackal - need to be made not movable after creating tuple to
+    // store not movable objects
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
+    // Class should be not movable
+    const uint32_t gpiox_;
 
     const uint32_t set_reg_mask_;
     const uint32_t reset_reg_mask_;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
     static consteval uint32_t CalculateSetRegValue(int pin);
     static consteval uint32_t CalculateResetRegValue(int pin);
@@ -51,7 +67,14 @@ class GPIOLow<kPort, kPin>::GPIOLowHandler
 {
 public:
     template <typename T>
-    GPIOLowHandler(const T &env);
+    explicit GPIOLowHandler(const T &env);
+
+    GPIOLowHandler(const GPIOLowHandler &) = delete;
+    GPIOLowHandler &operator=(const GPIOLowHandler &) = delete;
+    GPIOLowHandler &operator=(GPIOLowHandler &&) = delete;
+    GPIOLowHandler(GPIOLowHandler &&) = delete;
+
+    ~GPIOLowHandler() = default;
 
     void Set();
     void Reset();
@@ -70,20 +93,26 @@ GPIOLow<kPort, kPin>::GPIOLowHandler::GPIOLowHandler(const T &env)
 template <GPIOPort::Index kPort, int kPin>
 void GPIOLow<kPort, kPin>::GPIOLowHandler::Set()
 {
-    auto GPIOx = reinterpret_cast<GPIO_TypeDef *>(GPIO_low_.GPIOx_);
-    GPIOx->BSRR = GPIO_low_.set_reg_mask_;
+    auto *gpiox =
+        reinterpret_cast // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,
+        // performance-no-int-to-ptr): Registers access :(
+        <GPIO_TypeDef *>(GPIO_low_.gpiox_);
+    gpiox->BSRR = GPIO_low_.set_reg_mask_;
 }
 
 template <GPIOPort::Index kPort, int kPin>
 void GPIOLow<kPort, kPin>::GPIOLowHandler::Reset()
 {
-    auto GPIOx = reinterpret_cast<GPIO_TypeDef *>(GPIO_low_.GPIOx_);
-    GPIOx->BSRR = GPIO_low_.reset_reg_mask_;
+    auto *gpiox =
+        reinterpret_cast // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,
+        // performance-no-int-to-ptr): Registers access :(
+        <GPIO_TypeDef *>(GPIO_low_.gpiox_);
+    gpiox->BSRR = GPIO_low_.reset_reg_mask_;
 }
 
 template <GPIOPort::Index kPort, int kPin>
 consteval GPIOLow<kPort, kPin>::GPIOLow([[maybe_unused]] const Config &config)
-    : GPIOx_(GPIOPort::GetGPIOx(kPort)),
+    : gpiox_(GPIOPort::GetGPIOx(kPort)),
       set_reg_mask_(CalculateSetRegValue(kPin)),
       reset_reg_mask_(CalculateResetRegValue(kPin))
 {

@@ -110,7 +110,7 @@ inline hydrolib::ReturnCode Clock::Init(ClockPreset preset)
     default_tick_failed_ = SysTick_Config(MhzToKhz_(FREQUENCY_HSI_MHZ));
     if (default_tick_failed_)
     {
-        return hydrolib::ReturnCode::ERROR;
+        return hydrolib::ReturnCode::kError;
     }
 
     EnablePowerClock_();
@@ -119,27 +119,27 @@ inline hydrolib::ReturnCode Clock::Init(ClockPreset preset)
     if (preset.source == HSI)
     {
         hydrolib::ReturnCode hsi_rc = EnableHSI_();
-        hsi_failed_ = hsi_rc != hydrolib::ReturnCode::OK;
+        hsi_failed_ = hsi_rc != hydrolib::ReturnCode::kOk;
         if (hsi_failed_)
         {
-            return hydrolib::ReturnCode::ERROR;
+            return hydrolib::ReturnCode::kError;
         }
     }
     else
     {
         hydrolib::ReturnCode hse_rc = EnableHSE_();
-        hse_failed_ = hse_rc != hydrolib::ReturnCode::OK;
+        hse_failed_ = hse_rc != hydrolib::ReturnCode::kOk;
         if (hse_failed_)
         {
-            return hydrolib::ReturnCode::ERROR;
+            return hydrolib::ReturnCode::kError;
         }
     }
 
     hydrolib::ReturnCode pll_rc = ConfigurePLL_(pllcfgr_value);
-    pll_failed_ = pll_rc != hydrolib::ReturnCode::OK;
+    pll_failed_ = pll_rc != hydrolib::ReturnCode::kOk;
     if (pll_failed_)
     {
-        return hydrolib::ReturnCode::ERROR;
+        return hydrolib::ReturnCode::kError;
     }
 
     ConfigureSystemClock_();
@@ -147,10 +147,10 @@ inline hydrolib::ReturnCode Clock::Init(ClockPreset preset)
     sys_tick_failed_ = SysTick_Config(systick_reload_value);
     if (sys_tick_failed_)
     {
-        return hydrolib::ReturnCode::ERROR;
+        return hydrolib::ReturnCode::kError;
     }
 
-    return hydrolib::ReturnCode::OK;
+    return hydrolib::ReturnCode::kOk;
 }
 
 inline void Clock::SysTickHandler() { systick_counter_++; }
@@ -204,10 +204,10 @@ inline hydrolib::ReturnCode Clock::EnableHSI_(void)
     {
         if (GetSystickCounter_() - start > TIMEOUT_MS)
         {
-            return hydrolib::ReturnCode::FAIL;
+            return hydrolib::ReturnCode::kFail;
         }
     }
-    return hydrolib::ReturnCode::OK;
+    return hydrolib::ReturnCode::kOk;
 }
 
 inline hydrolib::ReturnCode Clock::EnableHSE_(void)
@@ -219,10 +219,10 @@ inline hydrolib::ReturnCode Clock::EnableHSE_(void)
     {
         if (GetSystickCounter_() - start > TIMEOUT_MS)
         {
-            return hydrolib::ReturnCode::FAIL;
+            return hydrolib::ReturnCode::kFail;
         }
     }
-    return hydrolib::ReturnCode::OK;
+    return hydrolib::ReturnCode::kOk;
 }
 
 inline void Clock::ConfigureSystemClock_(void)
@@ -251,11 +251,11 @@ inline hydrolib::ReturnCode Clock::ConfigurePLL_(uint32_t pllcfgr_value)
     {
         if (GetSystickCounter_() - start > TIMEOUT_MS)
         {
-            return hydrolib::ReturnCode::FAIL;
+            return hydrolib::ReturnCode::kFail;
         }
     }
 
-    return hydrolib::ReturnCode::OK;
+    return hydrolib::ReturnCode::kOk;
 }
 
 inline uint32_t Clock::GetSystickCounter_(void)

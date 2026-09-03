@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <optional>
@@ -104,7 +105,7 @@ consteval UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity,
                    CallbackType>::UARTBase(const Config &config)
     : uart_low_(config.speed, config.IRQ_priority),
       tx_in_progress_flag_(false),
-      status_(hydrolib::ReturnCode::OK),
+      status_(hydrolib::ReturnCode::kOk),
       rx_callback_(config.rx_callback)
 {
 }
@@ -166,11 +167,7 @@ int UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity,
              CallbackType>::UART::Read(std::span<std::byte> data)
 {
     int length = GetRxLength();
-    auto data_length = data.size();
-    if (data_length > length)
-    {
-        data_length = length;
-    }
+    int data_length = std::min(static_cast<int>(data.size()), length);
 
     uart_base_.rx_queue_.Pull(data.data(), data_length);
     return data_length;
@@ -217,7 +214,7 @@ std::optional<uint8_t> UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity,
     if (uart_base_.rx_queue_.IsFull())
     {
         uart_low_handler_.GetRx();
-        uart_base_.status_ = hydrolib::ReturnCode::FAIL;
+        uart_base_.status_ = hydrolib::ReturnCode::kFail;
         uart_base_.rx_callback_();
         return std::nullopt;
     }

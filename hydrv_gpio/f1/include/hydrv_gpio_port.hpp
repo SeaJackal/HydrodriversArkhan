@@ -20,7 +20,7 @@ public:
         kGPIOB,
         kGPIOC,
         kGPIOD,
-        kPortsCount
+        kPortCount
     };
 
     struct Mode
@@ -78,7 +78,7 @@ public:
 private:
     struct PortInfo
     {
-        uint32_t GPIOx;
+        uint32_t gpiox;
         uint32_t RCC_APB2ENR_IOPxEN;
     };
 
@@ -152,7 +152,7 @@ consteval GPIOPort::PortInfo GPIOPort::GetPortInfo(Index port)
 
 consteval uint32_t GPIOPort::GetGPIOx(Index port)
 {
-    return GetPortInfo(port).GPIOx;
+    return GetPortInfo(port).gpiox;
 }
 
 consteval uint32_t GPIOPort::GetRCC_APB2ENR_IOPxEN(Index port)

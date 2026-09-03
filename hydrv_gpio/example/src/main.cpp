@@ -1,40 +1,35 @@
 #include "hydrv_clock.hpp"
 #include "hydrv_env.hpp"
+#include "hydrv_env_base.hpp"
 #include "hydrv_gpio_low.hpp"
 
 #include <chrono>
 
-#if defined(STM32F407xx)
+#ifdef STM32F407xx
+using LedGPIO =
+    hydrv::gpio::GPIOLow<hydrv::gpio::GPIOPort::Index::kGPIOD, 12>; // NOLINT
+#elifdef STM32F103xB
+using LedGPIO = hydrv::gpio::GPIOLow<hydrv::gpio::GPIOPort::Index::kGPIOC, 13>;
+#endif
 
-constinit hydrv::EnvBase env_base(
-    hydrv::clock::Clock::HSI_DEFAULT,
-    hydrv::gpio::GPIOLow<hydrv::gpio::GPIOPort::Index::kGPIOD, 12>::Config{
-        .output_type = hydrv::gpio::OutputType::kPushPull,
-        .output_speed = hydrv::gpio::OutputSpeed::kLow,
-        .pull_up_down = hydrv::gpio::PullUpDown::kNo});
+namespace
+{
+
+constinit hydrv::EnvBase
+    env_base(hydrv::clock::Clock::HSI_DEFAULT,
+             LedGPIO::Config{.output_type = hydrv::gpio::OutputType::kPushPull,
+                             .output_speed = hydrv::gpio::OutputSpeed::kLow,
+                             .pull_up_down = hydrv::gpio::PullUpDown::kNo});
 
 decltype(env_base)::Env env(env_base);
 
-hydrv::gpio::GPIOLow<hydrv::gpio::GPIOPort::Index::kGPIOD, 12>::GPIOLowHandler
-    led_pin(env);
+LedGPIO::GPIOLowHandler led_pin(env);
 
-#elif defined(STM32F103xB)
+} // namespace
 
-constexpr hydrv::gpio::GPIOMapper gpio_mapper{
-    {.port = hydrv::gpio::GPIOPort::Index::kGPIOC,
-     .pin = 13,
-     .preset = hydrv::gpio::GPIOPort::kOutput}};
-
-constinit hydrv::gpio::GPIO led_pin_base(hydrv::gpio::GPIOPort::Index::kGPIOC,
-                                         13, 0, gpio_mapper);
-
-#endif
-
-int main(void)
+int main()
 {
-    NVIC_SetPriorityGrouping(0);
-
-    while (1)
+    while (true)
     {
         led_pin.Set();
         auto start_time = std::chrono::steady_clock::now();
@@ -51,16 +46,12 @@ int main(void)
     }
 }
 
-void Error_Handler(void)
-{
-    __disable_irq();
-    while (1)
-    {
-    }
-}
 extern "C"
 {
-    void SysTick_Handler(void) { hydrv::clock::Clock::SysTickHandler(); }
+    void SysTick_Handler(void) // NOLINT
+    {
+        hydrv::clock::Clock::SysTickHandler();
+    }
 }
 
 #ifdef USE_FULL_ASSERT
