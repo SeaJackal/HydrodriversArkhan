@@ -20,8 +20,8 @@ class Clock
 public:
     enum PLLsource
     {
-        HSE = RCC_CFGR_PLLSRC,
-        HSI = 0
+        kHSE = RCC_CFGR_PLLSRC,
+        kHSI = 0
     };
 
     struct ClockPreset
@@ -32,13 +32,13 @@ public:
         unsigned frequency_hse_mhz;
     };
 
-    static constexpr ClockPreset HSI_DEFAULT{
-        .source = HSI,
+    static constexpr ClockPreset kHSIDefault{
+        .source = kHSI,
         .multiply_factor = 16,
         .hse_divide_factor = 1,
         .frequency_hse_mhz = 0,
     };
-    static constexpr unsigned TIMEOUT_MS = 1000;
+    static constexpr unsigned kTimeoutMs = 1000;
 
     static hydrolib::ReturnCode Init(ClockPreset preset);
     static void SysTickHandler(void);
@@ -99,7 +99,7 @@ inline hydrolib::ReturnCode Clock::Init(ClockPreset preset)
 
     EnablePowerClock_();
 
-    if (preset.source == HSI)
+    if (preset.source == kHSI)
     {
         hydrolib::ReturnCode hsi_rc = EnableHSI_();
         hsi_failed_ = hsi_rc != hydrolib::ReturnCode::OK;
@@ -177,7 +177,7 @@ inline hydrolib::ReturnCode Clock::EnableHSI_(void)
     uint32_t start = GetSystickCounter_();
     while (!IsHSIReady_())
     {
-        if (GetSystickCounter_() - start > TIMEOUT_MS)
+        if (GetSystickCounter_() - start > kTimeoutMs)
         {
             return hydrolib::ReturnCode::FAIL;
         }
@@ -192,7 +192,7 @@ inline hydrolib::ReturnCode Clock::EnableHSE_(void)
     uint32_t start = GetSystickCounter_();
     while (!IsHSEReady_())
     {
-        if (GetSystickCounter_() - start > TIMEOUT_MS)
+        if (GetSystickCounter_() - start > kTimeoutMs)
         {
             return hydrolib::ReturnCode::FAIL;
         }
@@ -228,7 +228,7 @@ inline hydrolib::ReturnCode Clock::ConfigurePLL_(const ClockPreset &preset)
     uint32_t start = GetSystickCounter_();
     while (!IsPLLReady_())
     {
-        if (GetSystickCounter_() - start > TIMEOUT_MS)
+        if (GetSystickCounter_() - start > kTimeoutMs)
         {
             return hydrolib::ReturnCode::FAIL;
         }
@@ -256,7 +256,7 @@ constexpr unsigned Clock::CalculateSystemClockMHz_(const ClockPreset &preset)
     case HSE:
         input_mhz = preset.frequency_hse_mhz;
         break;
-    case HSI:
+    case kHSI:
         input_mhz = FREQUENCY_HSI_MHZ / 2;
         break;
     }

@@ -16,14 +16,13 @@
 namespace hydrv
 {
 
-template <typename... Ts>
+template <typename ClockInfo, typename... Ts>
 class EnvBase
 {
 public:
     class Env;
 
-    consteval explicit EnvBase(const clock::Clock::ClockPreset &clock_preset,
-                               Ts... args);
+    consteval explicit EnvBase(const ClockInfo &clock_preset, Ts... args);
 
     EnvBase(const EnvBase &) = delete;
     EnvBase(EnvBase &&) = delete;
@@ -46,15 +45,12 @@ private:
     template <typename T, std::size_t... kGPIOIndexes>
     static consteval void
     AddGPIODataToVector(std::vector<gpio::GPIOPort::RawConfig> &configs, T &arg,
-                        std::index_sequence<kGPIOIndexes...>);
+                        std::index_sequence<kGPIOIndexes...> gpio_indexes);
 
     template <typename T, std::size_t... kIndexes>
     static consteval int CalculatePeriphIndex(
         [[maybe_unused]] std::index_sequence<kIndexes...> indexes);
 
-    clock::Clock::ClockPreset clock_preset_;
-
-    clock::Clock clock_;
     std::tuple<typename Ts::Handler...>
         devices_; // TODO: vov-dm-an - make tuple constructible from configs,
                   // not devices, to store not movable objects
@@ -62,18 +58,17 @@ private:
     std::array<gpio::GPIOPort, gpio::GPIOPort::kPortCount> gpio_ports_;
 };
 
-template <typename... Ts>
-consteval EnvBase<Ts...>::EnvBase(const clock::Clock::ClockPreset &clock_preset,
-                                  Ts... args)
-    : clock_preset_(clock_preset),
-      devices_(typename Ts::Handler{args}...),
+template <typename ClockInfo, typename... Ts>
+consteval EnvBase<ClockInfo, Ts...>::EnvBase(
+    [[maybe_unused]] const ClockInfo &clock_preset, Ts... args)
+    : devices_(typename Ts::Handler{args}...),
       gpio_ports_(CreateGPIOPorts(
           args..., std::make_index_sequence<gpio::GPIOPort::kPortCount>()))
 {
 }
 
-template <typename... Ts>
-consteval bool EnvBase<Ts...>::IsAllGPIOsUnique(
+template <typename ClockInfo, typename... Ts>
+consteval bool EnvBase<ClockInfo, Ts...>::IsAllGPIOsUnique(
     const std::vector<gpio::GPIOPort::RawConfig> &gpios)
 {
     for (auto i = gpios.begin(); i != gpios.end(); ++i)
@@ -89,10 +84,10 @@ consteval bool EnvBase<Ts...>::IsAllGPIOsUnique(
     return true;
 }
 
-template <typename... Ts>
+template <typename ClockInfo, typename... Ts>
 template <std::size_t... kIndexes>
 consteval std::array<gpio::GPIOPort, gpio::GPIOPort::kPortCount>
-EnvBase<Ts...>::CreateGPIOPorts(
+EnvBase<ClockInfo, Ts...>::CreateGPIOPorts(
     Ts... args, [[maybe_unused]] std::index_sequence<kIndexes...> indexes)
 {
     auto gpios = ExtractGPIOs(args...);
@@ -110,9 +105,9 @@ EnvBase<Ts...>::CreateGPIOPorts(
                         }))...};
 }
 
-template <typename... Ts>
+template <typename ClockInfo, typename... Ts>
 consteval std::vector<gpio::GPIOPort::RawConfig>
-EnvBase<Ts...>::ExtractGPIOs(Ts... args)
+EnvBase<ClockInfo, Ts...>::ExtractGPIOs(Ts... args)
 {
     std::vector<gpio::GPIOPort::RawConfig> configs;
     (AddGPIODataToVector(configs, args,
@@ -121,9 +116,9 @@ EnvBase<Ts...>::ExtractGPIOs(Ts... args)
     return configs;
 }
 
-template <typename... Ts>
+template <typename ClockInfo, typename... Ts>
 template <typename T, std::size_t... kGPIOIndexes>
-consteval void EnvBase<Ts...>::AddGPIODataToVector(
+consteval void EnvBase<ClockInfo, Ts...>::AddGPIODataToVector(
     std::vector<gpio::GPIOPort::RawConfig> &configs, T &arg,
     [[maybe_unused]] std::index_sequence<kGPIOIndexes...> indexes)
 {
@@ -137,9 +132,9 @@ consteval void EnvBase<Ts...>::AddGPIODataToVector(
     }
 }
 
-template <typename... Ts>
+template <typename ClockInfo, typename... Ts>
 template <typename T, std::size_t... kIndexes>
-consteval int EnvBase<Ts...>::CalculatePeriphIndex(
+consteval int EnvBase<ClockInfo, Ts...>::CalculatePeriphIndex(
     [[maybe_unused]] std::index_sequence<kIndexes...> indexes)
 {
     return ((std::is_same_v<typename Ts::Handler, T> ? kIndexes : 0) + ...);

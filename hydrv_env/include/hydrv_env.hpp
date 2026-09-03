@@ -6,11 +6,11 @@
 namespace hydrv
 {
 
-template <typename... Ts>
-class EnvBase<Ts...>::Env
+template <typename ClockInfo, typename... Ts>
+class EnvBase<ClockInfo, Ts...>::Env
 {
 public:
-    explicit Env(EnvBase<Ts...> &env_base);
+    explicit Env(EnvBase<ClockInfo, Ts...> &env_base);
 
     Env(const Env &) = delete;
     Env(Env &&) = delete;
@@ -25,13 +25,14 @@ public:
     const auto &GetPeriph() const;
 
 private:
-    EnvBase<Ts...> &env_base_;
+    EnvBase<ClockInfo, Ts...> &env_base_;
 };
 
-template <typename... Ts>
-EnvBase<Ts...>::Env::Env(EnvBase<Ts...> &env_base) : env_base_(env_base)
+template <typename ClockInfo, typename... Ts>
+EnvBase<ClockInfo, Ts...>::Env::Env(EnvBase<ClockInfo, Ts...> &env_base)
+    : env_base_(env_base)
 {
-    hydrv::clock::Clock::Init(env_base_.clock_preset_);
+    ClockInfo::Init();
     for (const auto &gpio_port : env_base_.gpio_ports_)
     {
         gpio_port.Init();
@@ -39,17 +40,17 @@ EnvBase<Ts...>::Env::Env(EnvBase<Ts...> &env_base) : env_base_(env_base)
     NVIC_SetPriorityGrouping(0);
 }
 
-template <typename... Ts>
+template <typename ClockInfo, typename... Ts>
 template <typename T>
-auto &EnvBase<Ts...>::Env::GetPeriph()
+auto &EnvBase<ClockInfo, Ts...>::Env::GetPeriph()
 {
     return std::get<CalculatePeriphIndex<T>(
         std::make_index_sequence<sizeof...(Ts)>())>(env_base_.devices_);
 }
 
-template <typename... Ts>
+template <typename ClockInfo, typename... Ts>
 template <typename T>
-const auto &EnvBase<Ts...>::Env::GetPeriph() const
+const auto &EnvBase<ClockInfo, Ts...>::Env::GetPeriph() const
 {
     return std::get<CalculatePeriphIndex<T>(
         std::make_index_sequence<sizeof...(Ts)>())>(env_base_.devices_);

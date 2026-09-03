@@ -3,8 +3,10 @@
 #include "hydrv_gpio_low.hpp"
 #include "hydrv_uart.hpp"
 
+using Clock = hydrv::clock::Clock<168>;
+
 constinit hydrv::EnvBase env_base(
-    hydrv::clock::Clock::HSI_DEFAULT,
+    Clock(),
     hydrv::uart::UARTBase<hydrv::uart::UARTIndex::kUSART3, 255, 255>::Config{
         .speed = hydrv::uart::UARTLowBase<
             hydrv::uart::UARTIndex::kUSART3>::Speed::k115200,
@@ -45,7 +47,7 @@ int main(void)
 
 extern "C"
 {
-    void SysTick_Handler(void) { hydrv::clock::Clock::SysTickHandler(); }
+    void SysTick_Handler(void) { Clock::SysTickHandler(); }
     void USART3_IRQHandler(void) { uart.IRQCallback(); }
     void HardFault_Handler(void)
     {

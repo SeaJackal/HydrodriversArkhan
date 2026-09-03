@@ -5,6 +5,11 @@
 
 #include <chrono>
 
+namespace
+{
+
+using Clock = hydrv::clock::Clock<168>;
+
 #ifdef STM32F407xx
 using LedGPIO =
     hydrv::gpio::GPIOLow<hydrv::gpio::GPIOPort::Index::kGPIOD, 12>; // NOLINT
@@ -12,11 +17,8 @@ using LedGPIO =
 using LedGPIO = hydrv::gpio::GPIOLow<hydrv::gpio::GPIOPort::Index::kGPIOC, 13>;
 #endif
 
-namespace
-{
-
 constinit hydrv::EnvBase
-    env_base(hydrv::clock::Clock::HSI_DEFAULT,
+    env_base(Clock(),
              LedGPIO::Config{.output_type = hydrv::gpio::OutputType::kPushPull,
                              .output_speed = hydrv::gpio::OutputSpeed::kLow,
                              .pull_up_down = hydrv::gpio::PullUpDown::kNo});
@@ -50,7 +52,7 @@ extern "C"
 {
     void SysTick_Handler(void) // NOLINT
     {
-        hydrv::clock::Clock::SysTickHandler();
+        Clock::SysTickHandler();
     }
 }
 
