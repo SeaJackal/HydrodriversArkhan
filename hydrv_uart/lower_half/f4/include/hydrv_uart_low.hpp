@@ -121,7 +121,7 @@ private:
     static constexpr uint32_t USARTBRRDIVMantissaVal(uint32_t val);
     static constexpr uint32_t USARTCR2Stop1bit();
 
-    int IRQ_priority_;
+    int irq_priority_;
     // TODO: SeaJackal - need to be made not movable after creating tuple to
     // store not movable objects
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
@@ -288,7 +288,7 @@ void UARTLowBase<kIndex>::EnableUARTClock(uint32_t rcc_address, uint32_t en_bit)
 
 template <UARTIndex kIndex>
 consteval UARTLowBase<kIndex>::UARTLowBase(Speed speed, int irq_priority)
-    : IRQ_priority_(irq_priority),
+    : irq_priority_(irq_priority),
       cr1_(CountCR1Mask()),
       cr2_(CountCR2Mask()),
       brr_(CountBRRMask(speed))
@@ -301,7 +301,7 @@ UARTLowBase<kIndex>::UARTLow::UARTLow(UARTLowBase<kIndex> &uart_low_base)
 {
     auto preset = GetUARTPreset();
     EnableUARTClock(preset.rcc_address, preset.rcc_apbenr_uartxen);
-    NVIC_SetPriority(preset.usartx_irqn, uart_low_base_.IRQ_priority_);
+    NVIC_SetPriority(preset.usartx_irqn, uart_low_base_.irq_priority_);
     NVIC_EnableIRQ(preset.usartx_irqn);
 
     auto *usar_tx =

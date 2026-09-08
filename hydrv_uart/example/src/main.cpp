@@ -18,7 +18,7 @@ using Clock = hydrv::clock::Clock<kSysClkFreq>;
 using UART = hydrv::uart::UARTBase<hydrv::uart::UARTIndex::kUSART3,
                                    kUARTBufferSize, kUARTBufferSize>;
 using Pin =
-    hydrv::gpio::GPIOLow<hydrv::gpio::GPIOPort::Index::kGPIOD,
+    hydrv::gpio::GPIOLowBase<hydrv::gpio::GPIOPort::Index::kGPIOD,
                          12>; // NOLINT(cppcoreguidelines-avoid-magic-numbers,
                               // readability-magic-numbers)
 
@@ -38,7 +38,7 @@ decltype(env_base)::Env env(env_base);
 
 UART::UART uart(env);
 
-Pin::GPIOLowHandler led_pin(env);
+Pin::GPIOLow led_pin(env);
 
 constexpr int kEchoBufferSize = 5;
 

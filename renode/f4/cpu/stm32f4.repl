@@ -391,7 +391,7 @@ bitbandSram: Miscellaneous.BitBanding @ sysbus <0x22000000, +0x200000>
 
 sysbus:
     init:
-        ApplySVD @/workspaces/Hydrodrivers/resources/STM32F407.svd
+        ApplySVD @/workspaces/HydrodriversArkhan/resources/STM32F407.svd
         Tag <0x40021000, 0x40021003> "GPIOE_MODER" 0xFFFFFFFF
         Tag <0x40021004, 0x40021007> "GPIOE_OTYPER" 0x00000008
         // FLASH and USB tags are required for CubeMX-based projects to pass the initialization phase

@@ -11,8 +11,8 @@ namespace
 using Clock = hydrv::clock::Clock<168>;
 
 #ifdef STM32F407xx
-using LedGPIO =
-    hydrv::gpio::GPIOLow<hydrv::gpio::GPIOPort::Index::kGPIOD, 12>; // NOLINT
+using LedGPIO = hydrv::gpio::GPIOLowBase<hydrv::gpio::GPIOPort::Index::kGPIOD,
+                                         12>; // NOLINT
 #elifdef STM32F103xB
 using LedGPIO = hydrv::gpio::GPIOLow<hydrv::gpio::GPIOPort::Index::kGPIOC, 13>;
 #endif
@@ -25,7 +25,7 @@ constinit hydrv::EnvBase
 
 decltype(env_base)::Env env(env_base);
 
-LedGPIO::GPIOLowHandler led_pin(env);
+LedGPIO::GPIOLow led_pin(env);
 
 } // namespace
 
