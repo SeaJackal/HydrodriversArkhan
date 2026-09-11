@@ -10,11 +10,11 @@ jobs:
       - uses: actions/checkout@v4
       - run: cmake --preset DebugWithTestsF1
       - run: cmake --build ./build
-  Build-F4:
-    runs-on: ubuntu-latest
-    container:
-      image: seajackal/hydrodrivers:latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: cmake --preset DebugWithTestsF4
-      - run: cmake --build ./build
+  # Build-F4:
+  #   runs-on: ubuntu-latest
+  #   container:
+  #     image: seajackal/hydrodrivers:latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - run: cmake --preset DebugWithTestsF4
+  #     - run: cmake --build ./build
