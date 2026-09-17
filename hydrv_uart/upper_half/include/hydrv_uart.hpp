@@ -42,7 +42,7 @@ public:
         // NOLINTEND(misc-non-private-member-variables-in-classes)
 
         [[nodiscard]] consteval std::tuple<gpio::GPIOPort::RawConfig,
-                             gpio::GPIOPort::RawConfig>
+                                           gpio::GPIOPort::RawConfig>
         GetGPIOConfigs() const;
     };
 
@@ -98,6 +98,9 @@ public:
 
     [[nodiscard]] int GetRxLength() const;
     [[nodiscard]] int GetTxLength() const;
+
+    int write(const void *source, unsigned length);
+    int read(void *dest, unsigned length);
 
 protected:
     [[nodiscard]] bool IsTransmiting() const;
@@ -266,4 +269,22 @@ std::optional<uint8_t> UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity,
     return tx_data;
 }
 
+template <UARTIndex kIndex, int kRxBufferCapacity, int kTxBufferCapacity,
+          typename CallbackType>
+requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
+int UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity,
+             CallbackType>::UART::write(const void *source, unsigned length)
+{
+    return Transmit(std::span<const std::byte>(
+        static_cast<const std::byte *>(source), length));
+}
+
+template <UARTIndex kIndex, int kRxBufferCapacity, int kTxBufferCapacity,
+          typename CallbackType>
+requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
+int UARTBase<kIndex, kRxBufferCapacity, kTxBufferCapacity,
+             CallbackType>::UART::read(void *dest, unsigned length)
+{
+    return Read(std::span<std::byte>(static_cast<std::byte *>(dest), length));
+}
 } // namespace hydrv::uart

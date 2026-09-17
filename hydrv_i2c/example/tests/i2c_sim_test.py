@@ -53,7 +53,7 @@ class AngleResponder:
 
     def write(self, data):
         logger.debug("Got write request: %r", data)
-        if ANGLE_REGISTER != data[0] and len(data) != 1:
+        if ANGLE_REGISTER != data[0] or len(data) != 1:
             raise AssertionError(f"Expected write to {ANGLE_REGISTER}, got {data[0]}, length {len(data)}")
 
     def read(self, number_of_bytes: int):
@@ -126,5 +126,5 @@ def i2c_example_should_read_angle() -> None:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(levelname)s %(message)s")
     i2c_example_should_read_angle()

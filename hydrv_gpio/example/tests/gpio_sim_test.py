@@ -33,4 +33,4 @@ def gpio_example_should_blink_led() -> None:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(levelname)s %(message)s")
-    gpio_example_should_blink_led()
+    # gpio_example_should_blink_led()

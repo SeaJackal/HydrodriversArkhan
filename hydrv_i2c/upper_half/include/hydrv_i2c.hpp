@@ -1,196 +1,99 @@
 #pragma once
 
-#include "hydrolib_func_concepts.hpp"
-#include "hydrv_gpio_low.hpp"
-#include "hydrv_i2c_low.hpp"
-#include <cstdint>
-#include <cstring>
+#include "hydrv_i2c_base.hpp"
 
-namespace hydrv::I2C
+namespace hydrv::i2c
 {
 
-template <typename CallbackType =
-              decltype(&hydrolib::concepts::func::DummyFunc<void>),
-          int MAX_TX_LENGTH = 255>
+template <I2CIndex kIndex, typename CallbackType, int kMaxTxCapacity>
 requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
-class I2C
+class I2CBase<kIndex, CallbackType, kMaxTxCapacity>::I2C
 {
 public:
-    consteval I2C(const I2CLow::I2CPreset &preset,
-                  hydrv::GPIO::GPIOLow &scl_pin, hydrv::GPIO::GPIOLow &sda_pin,
-                  unsigned IRQ_priority,
-                  CallbackType transaction_complete_callback =
-                      hydrolib::concepts::func::DummyFunc<void>);
+    template <typename T>
+    explicit I2C(T &env);
 
-    void Init();
-    void Write(uint8_t address, const void *tx_buffer, int tx_length);
-    void Read(uint8_t address, void *rx_buffer, int rx_length);
+    void Write(std::byte address, std::span<const std::byte> data);
+    void Read(std::byte address, std::span<std::byte> data);
 
     void IRQCallback();
 
 private:
-    enum class State
-    {
-        IDLE,
-        START_CONDITION,
-        ADDRESS_WRITE,
-        WRITING,
-        READING
-    };
-
-private:
-    I2CLow i2c_low_;
-    uint8_t address_;
-    int tx_length_;
-    int rx_length_;
-    int current_counter_;
-    uint8_t tx_buffer_[MAX_TX_LENGTH] = {};
-    uint8_t *rx_buffer_;
-    State state_;
-    CallbackType transaction_complete_callback_;
-
-private:
-    void Finish_();
+    I2CBase<kIndex, CallbackType, kMaxTxCapacity> &i2c_base_;
+    I2CLowBase<kIndex>::I2CLow i2c_low_;
 };
 
-template <typename CallbackType, int MAX_TX_LENGTH>
+template <I2CIndex kIndex, typename CallbackType, int kMaxTxCapacity>
 requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
-consteval I2C<CallbackType, MAX_TX_LENGTH>::I2C(
-    const I2CLow::I2CPreset &preset, hydrv::GPIO::GPIOLow &scl_pin,
-    hydrv::GPIO::GPIOLow &sda_pin, unsigned IRQ_priority,
-    CallbackType transaction_complete_callback)
-    : i2c_low_(preset, scl_pin, sda_pin, IRQ_priority),
-      address_(0),
-      tx_length_(0),
-      rx_length_(0),
-      current_counter_(0),
-      rx_buffer_(nullptr),
-      state_(State::IDLE),
-      transaction_complete_callback_(transaction_complete_callback)
+template <typename T>
+I2CBase<kIndex, CallbackType, kMaxTxCapacity>::I2C::I2C(T &env)
+    : i2c_base_(env.template GetPeriph<
+                I2CBase<kIndex, CallbackType, kMaxTxCapacity>>()),
+      i2c_low_(i2c_base_.i2c_low_)
+
 {
 }
 
-template <typename CallbackType, int MAX_TX_LENGTH>
+template <I2CIndex kIndex, typename CallbackType, int kMaxTxCapacity>
 requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
-inline void I2C<CallbackType, MAX_TX_LENGTH>::Init()
+void I2CBase<kIndex, CallbackType, kMaxTxCapacity>::I2C::Write(
+    std::byte address, std::span<const std::byte> data)
 {
-    i2c_low_.Init();
+    std::ranges::copy(data, i2c_base_.tx_buffer_.begin());
+    i2c_base_.direction_ = Direction::kWriting;
+    i2c_base_.tx_iterator_ = i2c_base_.tx_buffer_.begin();
+    i2c_base_.write_transaction_ =
+        WriteTransaction<kIndex>(i2c_low_, address, data.size());
+    i2c_base_.write_transaction_.Start();
 }
 
-template <typename CallbackType, int MAX_TX_LENGTH>
+template <I2CIndex kIndex, typename CallbackType, int kMaxTxCapacity>
 requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
-inline void I2C<CallbackType, MAX_TX_LENGTH>::Write(uint8_t address,
-                                                    const void *tx_buffer,
-                                                    int tx_length)
+void I2CBase<kIndex, CallbackType, kMaxTxCapacity>::I2C::Read(
+    std::byte address, std::span<std::byte> data)
 {
-    i2c_low_.ClearStatusBits();
-    address_ = address;
-    tx_length_ = tx_length;
-    memcpy(tx_buffer_, tx_buffer, tx_length);
-    state_ = State::START_CONDITION;
-    i2c_low_.EnableEventInterrupt();
-    i2c_low_.EnableErrorInterrupt();
-    i2c_low_.GenerateStart();
+    i2c_base_.rx_iterator_ = data.begin();
+    i2c_base_.direction_ = Direction::kReading;
+    i2c_base_.read_transaction_ =
+        ReadTransaction<kIndex>(i2c_low_, address, data.size());
+    i2c_base_.read_transaction_.Start();
 }
 
-template <typename CallbackType, int MAX_TX_LENGTH>
+template <I2CIndex kIndex, typename CallbackType, int kMaxTxCapacity>
 requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
-inline void I2C<CallbackType, MAX_TX_LENGTH>::Read(uint8_t address,
-                                                   void *rx_buffer,
-                                                   int rx_length)
+void I2CBase<kIndex, CallbackType, kMaxTxCapacity>::I2C::IRQCallback()
 {
-    i2c_low_.ClearStatusBits();
-    address_ = address | 0x1;
-    rx_length_ = rx_length;
-    rx_buffer_ = static_cast<uint8_t *>(rx_buffer);
-    state_ = State::START_CONDITION;
-    i2c_low_.EnableAck();
-    i2c_low_.EnableEventInterrupt();
-    i2c_low_.EnableErrorInterrupt();
-    i2c_low_.GenerateStart();
-}
-
-template <typename CallbackType, int MAX_TX_LENGTH>
-requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
-inline void I2C<CallbackType, MAX_TX_LENGTH>::IRQCallback()
-{
-    if (i2c_low_.IsAckFailure())
+    switch (i2c_base_.direction_)
     {
-        i2c_low_.ClearAckFailure();
-        Finish_();
-        return;
-    }
-
-    switch (state_)
-    {
-    case State::IDLE:
-        return;
-    case State::START_CONDITION:
-        if (i2c_low_.IsStartBit())
+    case Direction::kWriting:
+        if (i2c_base_.write_transaction_.Process())
         {
-            i2c_low_.SendAddress(address_);
-            state_ = State::ADDRESS_WRITE;
-        }
-        return;
-    case State::ADDRESS_WRITE:
-        if (i2c_low_.IsAddr())
-        {
-            i2c_low_.ClearAddr();
-            if (tx_length_ == 0)
+            if (i2c_base_.write_transaction_.Transmit(*i2c_base_.tx_iterator_))
             {
-                state_ = State::READING;
-                if (rx_length_ == 1)
-                {
-                    i2c_low_.DisableAck();
-                }
-            }
-            else
-            {
-                state_ = State::WRITING;
+                i2c_base_.tx_iterator_++;
             }
         }
-        return;
-    case State::WRITING:
-        if (i2c_low_.IsTxEmpty())
+        if (i2c_base_.write_transaction_.IsFinished())
         {
-            i2c_low_.SetTx(tx_buffer_[current_counter_]);
-            current_counter_++;
-            if (current_counter_ == tx_length_)
+            i2c_base_.transaction_complete_callback_();
+        }
+        break;
+    case Direction::kReading:
+        if (i2c_base_.read_transaction_.Process())
+        {
+            auto received = i2c_base_.read_transaction_.Receive();
+            if (received)
             {
-                Finish_();
+                *i2c_base_.rx_iterator_ = *received;
+                i2c_base_.rx_iterator_++;
             }
         }
-        return;
-    case State::READING:
-        if (i2c_low_.IsRxNotEmpty())
+        if (i2c_base_.read_transaction_.IsFinished())
         {
-            rx_buffer_[current_counter_] = i2c_low_.GetRx();
-            current_counter_++;
-            if (current_counter_ == rx_length_ - 1)
-            {
-                i2c_low_.DisableAck();
-            }
-            if (current_counter_ == rx_length_)
-            {
-                Finish_();
-            }
+            i2c_base_.transaction_complete_callback_();
         }
-        return;
+        break;
     }
 }
 
-template <typename CallbackType, int MAX_TX_LENGTH>
-requires hydrolib::concepts::func::FuncConcept<CallbackType, void>
-inline void I2C<CallbackType, MAX_TX_LENGTH>::Finish_()
-{
-    i2c_low_.GenerateStop();
-    i2c_low_.DisableEventInterrupt();
-    i2c_low_.DisableErrorInterrupt();
-    state_ = State::IDLE;
-    current_counter_ = 0;
-    tx_length_ = 0;
-    rx_length_ = 0;
-    transaction_complete_callback_();
-}
-
-} // namespace hydrv::I2C
+} // namespace hydrv::i2c

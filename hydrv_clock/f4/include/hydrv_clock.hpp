@@ -214,7 +214,7 @@ template <int kTemplateSysclkFreqMhz, int kHSEFreqMhz>
 constexpr Clock<kTemplateSysclkFreqMhz, kHSEFreqMhz>::ClockPreset
 Clock<kTemplateSysclkFreqMhz, kHSEFreqMhz>::GetClockPreset()
 {
-    if constexpr (kHSEFreqMhz != 0)
+    if constexpr (kHSEFreqMhz == 0)
     {
         constexpr ClockPreset kHSIPreset{
             .source = PLLsource::kHSI,
